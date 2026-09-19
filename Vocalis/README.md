@@ -1,5 +1,9 @@
 # Vocalis
 
+<p>
+  <img src="Vocalis.jpeg" alt="Logo de Vocalis" width="120">
+</p>
+
 Vocalis est un logiciel simple pour lire du texte à voix haute sur Linux.
 
 Il fonctionne en local, sans envoyer le texte sur Internet.
