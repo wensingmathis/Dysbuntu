@@ -22,6 +22,10 @@ Cette police a été choisie pour rendre la lecture plus confortable pour certai
 
 ### Vocalis
 
+<p>
+  <img src="Vocalis/Vocalis.jpeg" alt="Logo de Vocalis" width="120">
+</p>
+
 Application de lecture de texte créée pour Dysbuntu.
 
 * Synthèse vocale avec Piper
@@ -95,4 +99,3 @@ Dysbuntu est un projet personnel et open source qui cherche à créer un environ
 * basé sur la souveraineté numérique
 
 Le but est de créer un système adapté aux besoins des utilisateurs sans dépendre uniquement de solutions propriétaires.
-
