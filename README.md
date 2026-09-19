@@ -2,59 +2,97 @@
 
 ![Aperçu de Dysbuntu](%20images%20accueil.png)
 
-## Applications préinstallées
+# Dysbuntu
 
-Le projet utilise plusieurs logiciels libres ou open source.
+Projet open source d'accessibilité informatique basé sur Ubuntu pour faciliter l'utilisation de Linux par les personnes dyslexiques, dysgraphiques ou dysorthographiques.
 
-### Vocalis — Linux pour Dys
+## Objectif
 
-Vocalis est un logiciel créé dans le cadre du projet Linux pour Dys.
+Dysbuntu a pour objectif de proposer un système Linux simple, accessible et personnalisable, avec des outils adaptés aux difficultés de lecture et d'écriture.
 
-Il permet de transformer du texte en parole directement sur l'ordinateur.
+Le projet est basé sur Ubuntu et cherche également à favoriser la souveraineté numérique, la confidentialité et l'utilisation de logiciels libres.
 
-* Piper comme moteur principal
-* eSpeak NG comme moteur de secours
-* Voix française `fr_FR-siwis-medium`
-* Fonctionnement hors ligne
-* Génération locale des fichiers audio
-* Enregistrement en WAV
-* Aucun texte envoyé vers un serveur
+## Police d'écriture
 
-Code source : ce dépôt, dossier `Vocalis/`
+Dysbuntu utilise la police **OpenDyslexic** pour l'interface et les textes.
 
-### LibreOffice — Allemagne
+Cette police a été choisie pour rendre la lecture plus confortable pour certaines personnes dyslexiques, notamment grâce à la forme particulière de ses lettres.
 
-LibreOffice est une suite bureautique libre et open source développée par une communauté internationale et soutenue par The Document Foundation.
+## Logiciels inclus
 
-GitHub : https://github.com/LibreOffice/core
+### Vocalis
 
-### ONLYOFFICE — Lettonie
+Application de lecture de texte créée pour Dysbuntu.
 
-ONLYOFFICE est une suite bureautique open source développée par Ascensio System SIA.
+* Synthèse vocale avec Piper
+* eSpeak NG comme solution de secours
+* Fonctionnement local
+* Lecture de textes à voix haute
 
-GitHub : https://github.com/ONLYOFFICE
+Code source : dossier `Vocalis/` dans ce dépôt.
 
-### Ecosia Browser — Allemagne
+### LibreOffice
 
-Ecosia est une entreprise européenne fondée à Berlin, en Allemagne.
+Suite bureautique libre.
 
-Son navigateur est utilisé dans le projet pour tester une alternative européenne dans le domaine des navigateurs et des services numériques.
+Projet : https://github.com/LibreOffice/core
 
-### Stirling PDF — Royaume-Uni
+### ONLYOFFICE
 
-Stirling PDF est un projet open source permettant de travailler avec des fichiers PDF.
+Suite bureautique utilisée pour les documents.
 
-GitHub : https://github.com/Stirling-Tools/Stirling-PDF
+Projet : https://github.com/ONLYOFFICE
+
+### Ecosia Browser
+
+Navigateur basé sur Chromium.
+
+Site : https://www.ecosia.org/
+
+### Stirling PDF
+
+Outil libre permettant de manipuler et modifier des fichiers PDF.
+
+Projet : https://github.com/Stirling-Tools/Stirling-PDF
 
 ### Piper
 
-Piper est le moteur de synthèse vocale utilisé par Vocalis pour la voix principale.
+Moteur de synthèse vocale utilisé par Vocalis.
 
-GitHub : https://github.com/rhasspy/piper
+Projet : https://github.com/rhasspy/piper
 
 ### eSpeak NG
 
-eSpeak NG est un moteur de synthèse vocale open source utilisé comme moteur de secours dans Vocalis.
+Moteur de synthèse vocale utilisé comme solution de secours dans Vocalis.
 
-GitHub : https://github.com/espeak-ng/espeak-ng
+Projet : https://github.com/espeak-ng/espeak-ng
+
+## Technologies
+
+* Ubuntu
+* Linux
+* Python
+* Tkinter
+* Piper
+* eSpeak NG
+* OpenDyslexic
+
+## Accessibilité
+
+Dysbuntu est pensé pour faciliter l'utilisation d'un ordinateur par les personnes ayant des difficultés de lecture ou d'écriture.
+
+Le projet reste ouvert à tous et peut être utilisé comme une distribution Linux classique.
+
+## Philosophie du projet
+
+Dysbuntu est un projet personnel et open source qui cherche à créer un environnement Linux :
+
+* simple
+* accessible
+* libre
+* respectueux de la vie privée
+* personnalisable
+* basé sur la souveraineté numérique
+
+Le but est de créer un système adapté aux besoins des utilisateurs sans dépendre uniquement de solutions propriétaires.
 
