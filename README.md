@@ -6,6 +6,14 @@
 
 Projet open source d'accessibilité informatique basé sur Ubuntu pour faciliter l'utilisation de Linux par les personnes dyslexiques, dysgraphiques ou dysorthographiques.
 
+## Droits d'auteur et licence
+
+Copyright © 2026 Mathis Wensing.
+
+Sauf indication contraire, le code source et les contenus originaux de Dysbuntu sont distribués selon les conditions de la **GNU General Public License v3.0 (GPL-3.0)**. Consultez [COPYRIGHT.md](COPYRIGHT.md) et [LICENSE](LICENSE) pour plus d'informations.
+
+Les composants et ressources provenant de tiers restent soumis à leurs propres licences et droits d'auteur.
+
 ## Objectif
 
 Dysbuntu a pour objectif de proposer un système Linux simple, accessible et personnalisable, avec des outils adaptés aux difficultés de lecture et d'écriture.
