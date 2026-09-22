@@ -1,8 +1,11 @@
 # Dysbuntu
 
-![Aperçu de Dysbuntu](%20images%20accueil.png)
+<p align="center">
+  <img src="dysbuntu.png" alt="Logo Dysbuntu" width="260">
+</p>
 
-# Dysbuntu
+> Logo Dysbuntu © 2026 Mathis Wensing. Tous droits réservés.  
+> Le code source et les contenus du dépôt sont distribués sous licence GPL-3.0, sauf indication contraire.
 
 Projet open source d'accessibilité informatique basé sur Ubuntu pour faciliter l'utilisation de Linux par les personnes dyslexiques, dysgraphiques ou dysorthographiques.
 
@@ -10,7 +13,7 @@ Projet open source d'accessibilité informatique basé sur Ubuntu pour faciliter
 
 Copyright © 2026 Mathis Wensing.
 
-Sauf indication contraire, le code source et les contenus originaux de Dysbuntu sont distribués selon les conditions de la **GNU General Public License v3.0 (GPL-3.0)**. Consultez [COPYRIGHT.md](COPYRIGHT.md) et [LICENSE](LICENSE) pour plus d'informations.
+Sauf indication contraire, le code source et les contenus originaux de Dysbuntu sont distribués selon les conditions de la **GNU General Public License v3.0 (GPL-3.0)**. Consultez [LICENSE](LICENSE) pour plus de détails.
 
 Les composants et ressources provenant de tiers restent soumis à leurs propres licences et droits d'auteur.
 
