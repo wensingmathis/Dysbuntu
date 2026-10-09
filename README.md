@@ -58,11 +58,11 @@ Suite bureautique utilisée pour les documents.
 
 Projet : https://github.com/ONLYOFFICE
 
-### Ecosia Browser
+### Mullvad Browser
 
-Navigateur basé sur Chromium.
+Navigateur basé sur Firefox, conçu pour protéger la vie privée et limiter le pistage en ligne.
 
-Site : https://www.ecosia.org/
+GitHub : [https://github.com/mullvad/mullvad-browser](https://github.com/mullvad/mullvad-browser)
 
 ### Stirling PDF
 
