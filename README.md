@@ -1,7 +1,7 @@
 # Dysbuntu
 
 <p align="center">
-  <img src="dysbuntu.png" alt="Logo Dysbuntu" width="260" style="background-color:white; padding:18px; border-radius:12px;">
+  <img src="logo Dysbuntu.png" alt="Logo Dysbuntu" width="260" style="background-color:white; padding:18px; border-radius:12px;">
 </p>
 
 > Logo Dysbuntu © 2026 Mathis Wensing. Tous droits réservés.  
