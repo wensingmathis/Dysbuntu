@@ -1,12 +1,16 @@
+<p align="center">
+  <img src="./dysbuntu-correcteur-0.1.0.png" alt="Logo Dysbuntu Correcteur" width="220" style="background-color: white; padding: 18px; border-radius: 12px;">
+</p>
+
 # Dysbuntu Correcteur
 
-Extension **LibreOffice Writer** (`.oxt`) qui corrige l'orthographe, la grammaire, les accords et la ponctuation du **français**, en s'appuyant sur un serveur **LanguageTool local** : tout fonctionne hors ligne, sans télémétrie. Elle fait partie du projet Dysbuntu (accessibilité numérique pour les personnes dyslexiques, dysgraphiques et dysorthographiques).
+Extension **LibreOffice Writer** (`.oxt`) qui corrige l'orthographe, la grammaire, les accords et la ponctuation du **français**, en s'appuyant sur un serveur **LanguageTool local** : tout fonctionne parfaitement en local, sans envoyer le texte à un service extérieur.
 
 > Cet outil aide à relire. Il ne remplace ni une relecture attentive, ni un accompagnement pédagogique ou médical. Une suggestion peut être fausse : vérifiez-la.
 
 ## Ce que fait l'extension
 - **Soulignement en direct** dans Writer (couleur selon le type d'erreur), suggestions dans le menu contextuel.
-- **Menu Dysbuntu** : *Vérifier la sélection*, *Vérifier le document* (revue guidée, une erreur à la fois : corriger en un clic, ignorer, toujours ignorer la règle), *Démarrer / tester le serveur*, *Options*, *Réactiver les règles ignorées*, *À propos*.
+- **Menu Dysbuntu** : *Vérifier la sélection*, *Vérifier le document* (revue guidée, une erreur à la fois : corriger en un clic, ignorer, toujours ignorer la règle), *Démarrer / tester le serveur* et *Options*.
 - Explications en phrases simples ; types d'erreurs désactivables ; taille du texte des fenêtres réglable.
 - Rien n'est modifié sans votre clic.
 
@@ -23,7 +27,7 @@ scripts/install_languagetool.sh    # télécharge LanguageTool (une seule fois, 
 ```
 Ouvrez Writer : le menu **Dysbuntu** apparaît. Le serveur démarre tout seul (réglable dans *Options*). À la main : `scripts/start_server.sh`.
 
-Pour que le soulignement en direct fonctionne : *Outils > Options > Paramètres linguistiques > Outils linguistiques > Modifier* : « Dysbuntu Correcteur » coché, et *Vérification automatique de l'orthographe* activée. La langue du texte doit être le français (*Outils > Langue > Pour tout le texte*).
+Pour que le soulignement en direct fonctionne : *Outils > Options > Paramètres linguistiques > Outils linguistiques > Modifier* : « Dysbuntu Correcteur » coché, et *Vérification automatique de l'orthographe* activée.
 
 ## Désinstallation
 `scripts/uninstall.sh` (ajoutez `--purge` pour supprimer réglages, journaux et LanguageTool).
