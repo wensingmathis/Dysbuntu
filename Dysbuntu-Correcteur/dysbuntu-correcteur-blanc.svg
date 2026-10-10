@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="260" viewBox="0 0 700 260" role="img" aria-labelledby="title desc">
+  <title id="title">Dysbuntu Correcteur</title>
+  <desc id="desc">Logo Dysbuntu Correcteur sur fond blanc</desc>
+  <rect width="700" height="260" fill="#ffffff"/>
+
+  <g transform="translate(40 30)">
+    <rect x="0" y="0" width="200" height="200" rx="42" fill="#F3F7FF"/>
+    <path d="M97 32C68 32 46 54 46 83V120C46 149 68 171 97 171H137C168 171 194 145 194 114V86C194 55 168 32 137 32H97ZM136 71H97C86 71 77 80 77 91V109C77 120 86 129 97 129H136C147 129 156 120 156 109V91C156 80 147 71 136 71Z" fill="#1FAE8A"/>
+    <path d="M153 62H193V91H153Z" fill="#8CE6C6"/>
+    <circle cx="143" cy="102" r="11" fill="#8CE6C6"/>
+    <path d="M80 173C98 154 118 146 145 146C172 146 192 154 209 173L195 200H92L80 173Z" fill="#1C7E69"/>
+  </g>
+
+  <g transform="translate(280 70)">
+    <text x="0" y="62" font-family="DejaVu Sans, Arial, sans-serif" font-size="48" font-weight="700" fill="#1F2A37">Dysbuntu</text>
+    <text x="0" y="110" font-family="DejaVu Sans, Arial, sans-serif" font-size="34" font-weight="600" fill="#2B7A64">Correcteur</text>
+    <line x1="0" y1="140" x2="340" y2="140" stroke="#D7E4EF" stroke-width="4"/>
+  </g>
+</svg>
