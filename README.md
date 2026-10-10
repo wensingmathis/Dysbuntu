@@ -1,7 +1,7 @@
 # Dysbuntu
 
 <p align="center">
-  <img src="dysbuntu.png" alt="Logo Dysbuntu" width="260">
+  <img src="dysbuntu.png" alt="Logo Dysbuntu" width="260" style="background-color:white; padding:18px; border-radius:12px;">
 </p>
 
 > Logo Dysbuntu © 2026 Mathis Wensing. Tous droits réservés.  
@@ -34,7 +34,7 @@ Cette police a été choisie pour rendre la lecture plus confortable pour certai
 ### Vocalis
 
 <p>
-  <img src="Vocalis/Vocalis.jpeg" alt="Logo de Vocalis" width="120">
+  <img src="Vocalis/Vocalis.jpeg" alt="Logo de Vocalis" width="120" style="background-color:white; padding:12px; border-radius:10px;">
 </p>
 
 Application de lecture de texte créée pour Dysbuntu.
@@ -49,7 +49,7 @@ Code source : dossier `Vocalis/` dans ce dépôt.
 ### Dysbuntu Correcteur
 
 <p>
-  <img src="Dysbuntu-Correcteur/dysbuntu-correcteur-0.1.0.png" alt="Logo Dysbuntu Correcteur" width="220">
+  <img src="Dysbuntu-Correcteur/dysbuntu-correcteur-0.1.0.png" alt="Logo Dysbuntu Correcteur" width="220" style="background-color:white; padding:18px; border-radius:12px;">
 </p>
 
 Extension **LibreOffice Writer** (`.oxt`) qui corrige l'orthographe, la grammaire, les accords et la ponctuation du français.
