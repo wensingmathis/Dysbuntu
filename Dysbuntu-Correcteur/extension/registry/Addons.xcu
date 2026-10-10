@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oor:component-data xmlns:oor="http://openoffice.org/2001/registry"
+                    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                    oor:name="Addons" oor:package="org.openoffice.Office">
+  <node oor:name="AddonUI">
+    <node oor:name="OfficeMenuBar">
+      <node oor:name="org.dysbuntu.correcteur" oor:op="replace">
+        <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">Dysbuntu</value></prop>
+        <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+        <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        <node oor:name="Submenu">
+        <node oor:name="m1" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.dysbuntu.correcteur:CheckSelection</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">Vérifier la sélection</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        </node>
+        <node oor:name="m2" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.dysbuntu.correcteur:CheckDocument</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">Vérifier le document</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        </node>
+        <node oor:name="m3" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.dysbuntu.correcteur:StartServer</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">Démarrer / tester le serveur</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        </node>
+        <node oor:name="m4" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.dysbuntu.correcteur:Options</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">Options...</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        </node>
+        <node oor:name="m5" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.dysbuntu.correcteur:ResetIgnored</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">Réactiver les règles ignorées</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        </node>
+        <node oor:name="m6" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.dysbuntu.correcteur:About</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value/><value xml:lang="fr">À propos</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.text.TextDocument</value></prop>
+        </node>
+        </node>
+      </node>
+    </node>
+  </node>
+</oor:component-data>

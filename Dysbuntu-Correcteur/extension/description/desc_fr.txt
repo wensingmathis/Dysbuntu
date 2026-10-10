@@ -1,0 +1,1 @@
+Dysbuntu Correcteur : correction orthographique et grammaticale pour Writer, hors ligne, avec un serveur LanguageTool local. Aucun texte n'est envoye sur Internet. Menu « Dysbuntu » pour verifier la selection ou le document.
