@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Clavia
+Comment=Apprendre à taper sur un clavier AZERTY · Dark Slate
+Exec=clavia
+Icon=clavia
+Terminal=false
+Categories=Education;Game;
+Keywords=AZERTY;Clavier;Frappe;Dactylographie;

@@ -85,6 +85,17 @@ Interface intuitive avec grille d'icônes et navigation fluide.
 
 Code source : dossier `NumDys/` dans ce dépôt.
 
+### Clavia
+
+Jeu éducatif natif Linux pour apprendre la dactylographie en français, avec une interface GTK4 et une sauvegarde locale SQLite.
+
+* 18 leçons progressives de mots, phrases et textes
+* Défi chronométré, statistiques, progression, badges et série quotidienne
+* Fonctionnement hors ligne et corrections de frappe
+* Interface adaptée à OpenDyslexic lorsqu'elle est installée
+
+Code source : dossier `Clavia/` dans ce dépôt. Clavia est distribué sous licence MIT (voir `Clavia/LICENSE`).
+
 ### LibreOffice
 
 Suite bureautique libre.
@@ -134,6 +145,8 @@ Projet : https://github.com/languagetoolorg/languagetool
 * Python
 * Tkinter
 * GTK3
+* GTK4
+* SQLite
 * Piper
 * eSpeak NG
 * LanguageTool

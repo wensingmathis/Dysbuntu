@@ -1,0 +1,151 @@
+/* CLAVIA / DARK SLATE — GTK4 native UI, no gradients, shadows or neon.
+   Tokens: charcoal #1E1E24, surface #25252B, text #D1D0C5,
+   muted #646669, amber #E2B714, error #CA4754. */
+window, window.background {
+  background-color: #1E1E24;
+  color: #D1D0C5;
+  font-family: "Inter", "Noto Sans", "Cantarell", sans-serif;
+  font-size: 14px;
+}
+label { color: #D1D0C5; }
+.topbar {
+  background-color: #1E1E24;
+  border-bottom: 1px solid #34343A;
+}
+.brand { font-size: 20px; font-weight: 800; color: #D1D0C5; letter-spacing: 2px; }
+.brand-caption { color: #646669; font-size: 10px; font-weight: 600; letter-spacing: 1px; margin-left: 10px; }
+.eyebrow, .chapter { color: #A5A49B; font-size: 11px; font-weight: 700; letter-spacing: 1.3px; }
+.page-title { color: #D1D0C5; font-size: 27px; font-weight: 650; }
+.hero-title { color: #D1D0C5; font-size: 33px; font-weight: 650; }
+.subtitle { color: #92918C; font-size: 14px; }
+.section-title { color: #D1D0C5; font-size: 20px; font-weight: 650; margin-top: 8px; }
+.hero, .panel, .stat-card, .result-card {
+  background-color: #25252B;
+  border: 1px solid #34343A;
+  border-radius: 8px;
+  padding: 22px;
+  box-shadow: none;
+}
+.hero, .result-card { padding: 30px; }
+.hero { background-color: #25252B; }
+.result-card { background-color: #25252B; }
+.stat-card { padding: 16px 19px; }
+.small-stat { color: #858580; font-size: 11px; font-weight: 700; letter-spacing: 0.65px; }
+.big-stat, .stat-medium, .timer {
+  color: #D1D0C5;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-weight: 600;
+}
+.big-stat { font-size: 30px; }
+.stat-medium { font-size: 22px; }
+.timer { color: #E2B714; font-size: 23px; }
+.muted, .lesson-description { color: #92918C; font-size: 13px; }
+.chapter-number { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #646669; }
+.lesson-card {
+  border: 1px solid #34343A;
+  border-radius: 6px;
+  background-color: #2B2B32;
+  padding: 14px 17px;
+}
+.lesson-card.locked { opacity: 0.48; }
+.lesson-title { color: #D1D0C5; font-size: 16px; font-weight: 650; }
+.number-pill {
+  background-color: #303037;
+  border: 1px solid #45454B;
+  border-radius: 6px;
+  color: #D1D0C5;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 600;
+  font-size: 15px;
+}
+.mini-accent { color: #E2B714; font-size: 12px; font-weight: 650; }
+.body-text { color: #D1D0C5; font-size: 15px; font-weight: 550; }
+button {
+  background-image: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 10px 18px;
+  min-height: 25px;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+button.primary { background-color: #E2B714; color: #1E1E24; border-color: #E2B714; }
+button.primary:hover { background-color: #EDC532; border-color: #EDC532; }
+button.primary:active { background-color: #C69F0D; }
+button.secondary, button.nav {
+  background-color: #303037;
+  color: #D1D0C5;
+  border-color: #3D3D44;
+}
+button.secondary:hover, button.nav:hover { background-color: #3A3A42; }
+button.nav { background-color: transparent; border-color: transparent; color: #A09F97; }
+button.nav:hover { background-color: #2B2B32; color: #D1D0C5; }
+button:disabled { opacity: 0.42; }
+button:focus-visible, textview:focus-visible, switch:focus-visible { outline: 2px solid #E2B714; outline-offset: 2px; }
+.exercise-card {
+  padding: 28px;
+  border: 1px solid #35353B;
+  background-color: #25252B;
+  border-radius: 8px;
+}
+.prompt {
+  color: #D1D0C5;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-size: 28px;
+  font-weight: 450;
+  line-height: 1.5;
+}
+.writing {
+  background-color: #1E1E24;
+  border: 1px solid #45454C;
+  border-radius: 6px;
+  transition: border-color 120ms ease;
+}
+.writing:focus-within { border-color: #7C703B; }
+textview, textview text {
+  background-color: #1E1E24;
+  color: #D1D0C5;
+  caret-color: #E2B714;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-size: 23px;
+}
+progressbar trough { border-radius: 3px; min-height: 5px; background-color: #39393F; }
+progressbar progress { background-color: #E2B714; border-radius: 3px; }
+.keycap {
+  background-color: #2B2B32;
+  color: #96958F;
+  border: 1px solid #45454B;
+  border-radius: 6px;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-size: 13px;
+  font-weight: 550;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.keycap.key-next { background-color: #494027; color: #E2B714; border-color: #A98B21; }
+.keycap.key-pressed { background-color: #726122; color: #FFF3B8; border-color: #E2B714; }
+.record-line, .badge-line, .setting-line { padding: 11px 5px; border-bottom: 1px solid #34343A; }
+.stars { color: #E2B714; font-size: 18px; font-weight: 650; }
+switch { min-width: 45px; }
+switch:checked { background-color: #A98B21; border-color: #A98B21; }
+switch slider { background-color: #D1D0C5; box-shadow: none; }
+.exercise-status { padding: 12px 0; border-bottom: 1px solid #34343A; }
+.exercise-metric { padding: 3px 10px; }
+.exercise-metric-value { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; color: #D1D0C5; font-size: 21px; font-weight: 600; }
+.exercise-metric-timer { color: #E2B714; }
+.mini-progress { padding: 0; }
+.keyboard-panel { background-color: transparent; border: 0; border-radius: 0; padding: 2px; }
+.chart-surface { background-color: #25252B; border: 1px solid #34343A; border-radius: 8px; padding: 14px; }
+.notice { color: #C6B972; font-size: 12px; }
+/* Single style for accessibility. Increases both the target and the editable input. */
+.large-text .prompt { font-size: 35px; }
+.large-text textview, .large-text textview text { font-size: 29px; }
+.large-text .lesson-title { font-size: 19px; }
+.large-text .body-text { font-size: 18px; }
+.large-text .subtitle { font-size: 16px; }
+/* OpenDyslexic applies to UI and writing elements, not just page labels. */
+.dyslexic-font, .dyslexic-font label, .dyslexic-font button,
+.dyslexic-font textview, .dyslexic-font textview text {
+  font-family: "OpenDyslexic", sans-serif;
+}
