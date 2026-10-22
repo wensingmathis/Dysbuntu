@@ -1,4 +1,6 @@
-# Clavia 2.1 — Dark Minimal / Slate
+> Version 3.0.2 : correction du chargement de la flamme dans GTK4, sans modification des sauvegardes.
+
+# Clavia 3.0.2 — Dark Minimal / Slate
 
 Jeu éducatif **natif Linux** pour apprendre la dactylographie en français. Développé avec Python 3, GTK4 / PyGObject et SQLite, **sans connexion Internet**, sans compte, sans publicité et sans télémétrie. Licence MIT.
 
@@ -16,14 +18,15 @@ Jeu éducatif **natif Linux** pour apprendre la dactylographie en français. Dé
 
 ## Gameplay
 
-18 leçons progressives : **6 de mots, 6 de phrases et 6 de textes**, défi de 60 secondes, chrono, XP, scores, records, niveaux, badges et série quotidienne de jours. Les erreurs de frappe restent corrigeables avec Retour arrière. Les données sont enregistrées localement dans SQLite.
+36 leçons progressives réparties en **6 chapitres** : Mots, Phrases, Textes, Situations, Précision et Maîtrise. S’y ajoutent un défi de 60 secondes, le chrono, l’XP, les scores, les records, les niveaux, les badges et la série quotidienne. Les erreurs de frappe restent corrigeables avec Retour arrière. Les données sont enregistrées localement dans SQLite.
 
 ## Installation sur Linux Mint, Ubuntu et Debian
 
 ### Paquet Debian (recommandé)
 
 ```bash
-sudo apt install ./clavia_2.1.0_all.deb
+./packaging/build-deb.sh
+sudo apt install ./clavia_3.0.2_all.deb
 clavia
 ```
 
@@ -73,3 +76,26 @@ python3 -m compileall -q src
 Le thème Dark Slate est volontairement unique : même si l'utilisateur avait sélectionné un thème clair dans une ancienne version, Clavia utilise désormais la palette sombre définie ici.
 
 > Vérification : tests automatisés du moteur et compilation Python. Le rendu GTK réel doit être validé sur un bureau Linux avec GTK4 installé.
+
+## Version 3.0 — boutons et flamme
+
+- Flamme native vectorielle orange avec centre doré, dessinée par Cairo et halo léger animé ; aucune image GIF chargée dans l'interface.
+- Boutons GTK4 inspirés des exemples Uiverse : appel à l'action ambre avec flèche qui glisse discrètement au survol, secondaires plats ardoise.
+- Animations de la flamme désactivables depuis Paramètres.
+- La version reste native GTK4 et entièrement hors ligne.
+
+## Nouveautés 3.0
+
+- 36 leçons en 6 chapitres : Mots, Phrases, Textes, Situations, Précision, Maîtrise.
+- Flamme de série issue du GIF fourni par le créateur, détourée sur fond transparent.
+- Progression SQLite 2.x conservée ; aucune migration destructrice.
+
+## Correctif 3.0.1 : carte Jours de suite
+
+Les quatre cartes de statistiques sont désormais disposées sur **deux colonnes** :
+la flamme et son compteur restent visibles même sur une fenêtre plus étroite.
+L’image `assets/flamme-streak.png` est conservée et incluse dans le paquet Debian.
+
+Après une remise à zéro de la sauvegarde, le compteur affiche **0** jusqu’à ce qu’une
+leçon ou un défi soit terminé. Cela ne signifie pas que l’image a disparu.
+La mise à jour ne supprime **aucune** sauvegarde.

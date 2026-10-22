@@ -47,13 +47,33 @@ def make_box(vertical=True, gap=12, css=None):
 
 
 def add_button(parent, label, callback, css='secondary', expand=False):
-    b = Gtk.Button(label=label)
-    b.add_css_class(css)
-    b.connect('clicked', lambda *_: callback())
+    """Boutons GTK natifs : CTA avec flèche ou action secondaire discrète.
+
+    GTK4 n'utilise pas les pseudo-éléments HTML (::before, svg) : les
+    éléments visuels sont de vrais widgets pour rester accessibles.
+    """
+    button = Gtk.Button()
+    button.add_css_class(css)
+    if css == 'primary':
+        button.add_css_class('arrow-button')
+        inside = make_box(False, 12)
+        inside.set_halign(Gtk.Align.CENTER)
+        text = widget_label(label, 'button-caption')
+        arrow = widget_label('→', 'button-arrow')
+        inside.append(text)
+        inside.append(arrow)
+        button.set_child(inside)
+        hover = Gtk.EventControllerMotion()
+        hover.connect('enter', lambda *_: arrow.add_css_class('arrow-hover'))
+        hover.connect('leave', lambda *_: arrow.remove_css_class('arrow-hover'))
+        button.add_controller(hover)
+    else:
+        button.set_label(label)
+    button.connect('clicked', lambda *_: callback())
     if expand:
-        b.set_hexpand(True)
-    parent.append(b)
-    return b
+        button.set_hexpand(True)
+    parent.append(button)
+    return button
 
 
 def clear(box):
@@ -61,30 +81,15 @@ def clear(box):
         box.remove(box.get_first_child())
 
 
-class Flame(Gtk.DrawingArea):
-    """Pictogramme de série quotidienne : une flamme vectorielle 2D mate."""
+class Flame(Gtk.Picture):
+    """Flamme exacte extraite du GIF fourni, avec fond transparent."""
 
-    def __init__(self):
+    def __init__(self, active=True):
         super().__init__()
-        self.set_content_width(30)
-        self.set_content_height(34)
-        self.set_draw_func(self.draw_flame)
-
-    def draw_flame(self, _area, cr, width, height):
-        cr.save()
-        cr.translate(width / 2, height / 2)
-        cr.scale(min(width / 34, height / 40), min(width / 34, height / 40))
-        cr.translate(-17, -20)
-        cr.move_to(17, 2)
-        cr.curve_to(19, 9, 28, 13, 29, 23)
-        cr.curve_to(30, 31, 25, 38, 17, 38)
-        cr.curve_to(7, 38, 3, 32, 5, 24)
-        cr.curve_to(7, 19, 12, 15, 12, 9)
-        cr.curve_to(16, 13, 17, 8, 17, 2)
-        cr.close_path()
-        cr.set_source_rgb(226 / 255, 183 / 255, 20 / 255)
-        cr.fill()
-        cr.restore()
+        self.set_filename(str(BASE / 'assets' / 'flamme-streak.png'))
+        self.set_can_shrink(True)
+        self.set_size_request(35, 39)
+        self.set_content_fit(Gtk.ContentFit.CONTAIN)
 
 
 class SpeedGraph(Gtk.DrawingArea):
@@ -273,31 +278,41 @@ class Clavia(Gtk.Application):
                                   'Ta précision et ta vitesse te font gagner des points.', 'subtitle', True))
         actions = make_box(False, 12)
         intro.append(actions)
-        next_lesson = LESSONS[min(unlocked, 18) - 1]
+        next_lesson = LESSONS[min(unlocked, len(LESSONS)) - 1]
         add_button(actions, f'Continuer : niveau {next_lesson.id}',
                    lambda l=next_lesson: self.start_lesson(l), 'primary')
         add_button(actions, 'Sprint de 60 secondes', self.start_sprint, 'secondary')
 
-        statsrow = make_box(False, 12)
-        self.page.append(statsrow)
-        self.stat_card(statsrow, 'NIVEAU', str(lvl), f'{summ["xp"]} XP au total')
-        self.stat_card(statsrow, 'JOURS DE SUITE', str(streak),
-                       'Entraînement régulier', flame=True)
-        self.stat_card(statsrow, 'LEÇONS VALIDÉES', str(min(unlocked - 1, 18)) + ' / 18',
-                       'Du mot au texte')
-        self.stat_card(statsrow, 'OBJECTIF DU JOUR', f'{min(3, self.db.today_sessions())} / 3',
-                       '3 exercices par jour')
+        # Deux colonnes : l'ancienne rangée horizontale faisait disparaître
+        # certaines cartes hors de la fenêtre (défilement horizontal désactivé).
+        statsgrid = Gtk.Grid()
+        statsgrid.set_column_spacing(12)
+        statsgrid.set_row_spacing(12)
+        statsgrid.set_column_homogeneous(True)
+        self.page.append(statsgrid)
+        cards = (
+            ('NIVEAU', str(lvl), f'{summ["xp"]} XP au total', False),
+            ('JOURS DE SUITE', str(streak),
+             'Entraînement régulier' if streak else 'Termine une leçon pour commencer', True),
+            ('LEÇONS VALIDÉES', f'{min(unlocked - 1, len(LESSONS))} / {len(LESSONS)}',
+             'Du mot au texte', False),
+            ('OBJECTIF DU JOUR', f'{min(3, self.db.today_sessions())} / 3',
+             '3 exercices par jour', False),
+        )
+        for index, (heading, value, foot, has_flame) in enumerate(cards):
+            card = self.stat_card(None, heading, value, foot, flame=has_flame)
+            statsgrid.attach(card, index % 2, index // 2, 1, 1)
 
         self.page.append(widget_label('Ton parcours', 'section-title'))
         self.page.append(widget_label('Termine une leçon pour débloquer la suivante. '
                                       'Tu peux refaire tes leçons pour améliorer ton record.', 'subtitle', True))
         completed = self.db.completed_ids()
-        for kind in ('Mots', 'Phrases', 'Textes'):
+        for kind in ('Mots', 'Phrases', 'Textes', 'Situations', 'Précision', 'Maîtrise'):
             section = self.panel(gap=13)
             heading = make_box(False, 10)
             section.append(heading)
             heading.append(widget_label(kind.upper(), 'chapter'))
-            heading.append(widget_label({'Mots': '01', 'Phrases': '02', 'Textes': '03'}[kind], 'chapter-number'))
+            heading.append(widget_label({'Mots': '01', 'Phrases': '02', 'Textes': '03', 'Situations': '04', 'Précision': '05', 'Maîtrise': '06'}[kind], 'chapter-number'))
             for lesson in LESSONS:
                 if lesson.kind != kind:
                     continue
@@ -329,16 +344,20 @@ class Clavia(Gtk.Application):
                 button.set_sensitive(available)
 
     def stat_card(self, parent, heading, value, foot, flame=False):
-        item = self.panel(parent, 'stat-card', 6)
+        # parent=None permet de placer la carte dans un Gtk.Grid.
+        item = make_box(gap=6, css='stat-card')
         item.set_hexpand(True)
+        if parent is not None:
+            parent.append(item)
         item.append(widget_label(heading, 'small-stat'))
-        value_row = make_box(False, 6)
+        value_row = make_box(False, 8)
         item.append(value_row)
         if flame:
-            self.flame = Flame()
+            self.flame = Flame(self.motion)
             value_row.append(self.flame)
         value_row.append(widget_label(value, 'big-stat'))
         item.append(widget_label(foot, 'muted', True))
+        return item
 
     def start_lesson(self, lesson):
         if lesson.id > self.db.unlocked_id():
@@ -700,7 +719,7 @@ class Clavia(Gtk.Application):
             ('Premier texte', any(i >= 13 for i in complete)),
             ('Trois jours de suite', streak >= 3),
             ('200 car/min', any(row['best_cpm'] >= 200 for row in self.db.records())),
-            ('Parcours terminé', len(complete) == 18),
+            ('Parcours terminé', len(complete) == len(LESSONS)),
         )
         for name, unlocked in badges:
             line = make_box(False, 12, css='badge-line')

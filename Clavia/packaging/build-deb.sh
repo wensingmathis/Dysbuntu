@@ -7,7 +7,7 @@ rm -rf "$BUILD"
 mkdir -p "$BUILD/DEBIAN" "$BUILD/usr/share/clavia/src" "$BUILD/usr/share/clavia/assets" \
          "$BUILD/usr/bin" "$BUILD/usr/share/applications" "$BUILD/usr/share/icons/hicolor/scalable/apps"
 cp "$ROOT"/src/*.py "$BUILD/usr/share/clavia/src/"
-cp "$ROOT/assets/style.css" "$BUILD/usr/share/clavia/assets/"
+cp "$ROOT/assets/style.css" "$ROOT/assets/flamme-streak.png" "$BUILD/usr/share/clavia/assets/"
 cp "$ROOT/assets/clavia.svg" "$BUILD/usr/share/icons/hicolor/scalable/apps/"
 cp "$ROOT/packaging/clavia.desktop" "$BUILD/usr/share/applications/"
 cat > "$BUILD/usr/bin/clavia" <<'EOF'
@@ -17,7 +17,7 @@ EOF
 chmod 755 "$BUILD/usr/bin/clavia"
 cat > "$BUILD/DEBIAN/control" <<'EOF'
 Package: clavia
-Version: 2.1.0
+Version: 3.0.2
 Architecture: all
 Maintainer: Clavia Contributors <noreply@example.invalid>
 Depends: python3 (>= 3.10), python3-gi, gir1.2-gtk-4.0
@@ -26,5 +26,5 @@ Description: Clavia Dark Slate, jeu educatif AZERTY hors ligne
 EOF
 chmod 755 "$BUILD/DEBIAN"
 chmod g-s "$BUILD/DEBIAN"
-dpkg-deb --build --root-owner-group "$BUILD" "$ROOT/clavia_2.1.0_all.deb"
-printf 'Paquet créé : %s/clavia_2.1.0_all.deb\n' "$ROOT"
+dpkg-deb --build --root-owner-group "$BUILD" "$ROOT/clavia_3.0.2_all.deb"
+printf 'Paquet créé : %s/clavia_3.0.2_all.deb\n' "$ROOT"

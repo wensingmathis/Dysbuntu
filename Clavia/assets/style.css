@@ -149,3 +149,36 @@ switch slider { background-color: #D1D0C5; box-shadow: none; }
 .dyslexic-font textview, .dyslexic-font textview text {
   font-family: "OpenDyslexic", sans-serif;
 }
+
+/* Clavia 2.2: Uiverse-inspired, rewritten as native GTK4 buttons. */
+button.primary.arrow-button {
+  border-radius: 8px;
+  background-color: #E2B714;
+  color: #18181C;
+  padding: 11px 19px;
+  font-weight: 700;
+  transition: background-color 140ms ease;
+}
+button.primary.arrow-button:hover { background-color: #F0CA3D; }
+button.primary.arrow-button:active { background-color: #C7A00D; }
+.button-caption { color: #18181C; font-weight: 700; }
+.button-arrow {
+  color: #18181C;
+  font-family: "Inter", "Cantarell", sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  margin-left: 0;
+  transition: margin-left 140ms ease;
+}
+.button-arrow.arrow-hover { margin-left: 6px; }
+/* Second Uiverse concept: subtle slate fill expanding on hover,
+   represented as flat GTK button without browser-only ::before pseudo elements. */
+button.secondary {
+  background-color: #292A32;
+  color: #D1D0C5;
+  border: 1px solid #404049;
+  border-radius: 8px;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+button.secondary:hover { background-color: #3B3C47; border-color: #666775; }
+button.secondary:active { background-color: #23242D; }

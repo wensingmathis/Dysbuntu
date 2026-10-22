@@ -12,7 +12,9 @@ from storage import Storage
 
 class TestGame(unittest.TestCase):
     def test_curriculum(self):
-        self.assertEqual(len(LESSONS), 18)
+        self.assertEqual(len(LESSONS), 36)
+        self.assertEqual([x.id for x in LESSONS], list(range(1, 37)))
+        self.assertEqual([x.kind for x in LESSONS[18::6]], ['Situations', 'Précision', 'Maîtrise'])
         self.assertEqual(LESSONS[0].kind, 'Mots')
         self.assertEqual(LESSONS[6].kind, 'Phrases')
         self.assertEqual(LESSONS[12].kind, 'Textes')

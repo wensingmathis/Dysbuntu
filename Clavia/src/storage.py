@@ -58,10 +58,11 @@ class Storage:
     def unlocked_id(self):
         ids = self.completed_ids()
         # Aucun saut de niveau permis, même si la base était modifiée autrefois.
-        for i in range(1, 19):
+        from content import LESSONS
+        for i in range(1, len(LESSONS) + 1):
             if i not in ids:
                 return i
-        return 19
+        return len(LESSONS) + 1
 
     def best(self, lesson_id):
         row = self.db.execute('''
