@@ -1,0 +1,344 @@
+/* CLAVIA / DARK SLATE — GTK4 native UI, no gradients, shadows or neon.
+   Tokens: charcoal #F4F4F1, surface #FFFFFF, text #222329,
+   muted #62656D, amber #B08400, error #CA4754. */
+window, window.background {
+  background-color: #F4F4F1;
+  color: #222329;
+  font-family: "Inter", "Noto Sans", "Cantarell", sans-serif;
+  font-size: 14px;
+}
+label { color: #222329; }
+.topbar {
+  background-color: #F4F4F1;
+  border-bottom: 1px solid #DEDFE0;
+}
+.brand { font-size: 20px; font-weight: 800; color: #222329; letter-spacing: 2px; }
+.brand-caption { color: #62656D; font-size: 10px; font-weight: 600; letter-spacing: 1px; margin-left: 10px; }
+.eyebrow, .chapter { color: #5D6066; font-size: 11px; font-weight: 700; letter-spacing: 1.3px; }
+.page-title { color: #222329; font-size: 27px; font-weight: 650; }
+.hero-title { color: #222329; font-size: 33px; font-weight: 650; }
+.subtitle { color: #65656A; font-size: 14px; }
+.section-title { color: #222329; font-size: 20px; font-weight: 650; margin-top: 8px; }
+.hero, .panel, .stat-card, .result-card {
+  background-color: #FFFFFF;
+  border: 1px solid #DEDFE0;
+  border-radius: 8px;
+  padding: 22px;
+  box-shadow: none;
+}
+.hero, .result-card { padding: 30px; }
+.hero { background-color: #FFFFFF; }
+.result-card { background-color: #FFFFFF; }
+.stat-card { padding: 16px 19px; }
+.small-stat { color: #5F6268; font-size: 11px; font-weight: 700; letter-spacing: 0.65px; }
+.big-stat, .stat-medium, .timer {
+  color: #222329;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-weight: 600;
+}
+.big-stat { font-size: 30px; }
+.stat-medium { font-size: 22px; }
+.timer { color: #B08400; font-size: 23px; }
+.muted, .lesson-description { color: #65656A; font-size: 13px; }
+.chapter-number { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #62656D; }
+.lesson-card {
+  border: 1px solid #DEDFE0;
+  border-radius: 6px;
+  background-color: #F0F0ED;
+  padding: 14px 17px;
+}
+.lesson-card.locked { opacity: 0.48; }
+.lesson-title { color: #222329; font-size: 16px; font-weight: 650; }
+.number-pill {
+  background-color: #EAEBEB;
+  border: 1px solid #C6C9CD;
+  border-radius: 6px;
+  color: #222329;
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 600;
+  font-size: 15px;
+}
+.mini-accent { color: #B08400; font-size: 12px; font-weight: 650; }
+.body-text { color: #222329; font-size: 15px; font-weight: 550; }
+button {
+  background-image: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 650;
+  padding: 10px 18px;
+  min-height: 25px;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+button.primary { background-color: #B08400; color: #F4F4F1; border-color: #B08400; }
+button.primary:hover { background-color: #C39600; border-color: #C39600; }
+button.primary:active { background-color: #A47900; }
+button.secondary, button.nav {
+  background-color: #EAEBEB;
+  color: #222329;
+  border-color: #D4D5D8;
+}
+button.secondary:hover, button.nav:hover { background-color: #E6E7EA; }
+button.nav { background-color: transparent; border-color: transparent; color: #66666A; }
+button.nav:hover { background-color: #F0F0ED; color: #222329; }
+button:disabled { opacity: 0.42; }
+button:focus-visible, textview:focus-visible, switch:focus-visible { outline: 2px solid #B08400; outline-offset: 2px; }
+.exercise-card {
+  padding: 28px;
+  border: 1px solid #DEDFE0;
+  background-color: #FFFFFF;
+  border-radius: 8px;
+}
+.prompt {
+  color: #222329;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-size: 28px;
+  font-weight: 450;
+  line-height: 1.5;
+}
+.writing {
+  background-color: #F4F4F1;
+  border: 1px solid #C6C9CD;
+  border-radius: 6px;
+  transition: border-color 120ms ease;
+}
+.writing:focus-within { border-color: #7C703B; }
+textview, textview text {
+  background-color: #F4F4F1;
+  color: #222329;
+  caret-color: #B08400;
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-size: 23px;
+}
+progressbar trough { border-radius: 3px; min-height: 5px; background-color: #E2E3E3; }
+progressbar progress { background-color: #B08400; border-radius: 3px; }
+.keyboard-body {
+  background-color: #D4D5D3;
+  border: 1px solid #B9BAB9;
+  border-radius: 8px;
+  padding: 13px 11px 16px;
+}
+.keyboard-row { margin: 0; padding: 0; }
+.keycap {
+  background-color: #F1F1EF;
+  color: #303139;
+  border: 1px solid #B9BAB9;
+  border-radius: 6px;
+  box-shadow: 0 2px 0 rgba(0,0,0,.16), 0 3px 5px rgba(0,0,0,.08);
+  font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.keycap.key-modifier { font-size: 10px; }
+.keycap.key-space { font-size: 10px; }
+.keycap.key-next { background-color: #F7E9B5; color: #B08400; border-color: #B08400; }
+.keycap.key-pressed { background-color: #EBD793; color: #303139; border-color: #B08400; }
+.record-line, .badge-line, .setting-line { padding: 11px 5px; border-bottom: 1px solid #DEDFE0; }
+.stars { color: #B08400; font-size: 18px; font-weight: 650; }
+switch { min-width: 45px; }
+switch:checked { background-color: #A98B21; border-color: #A98B21; }
+switch slider { background-color: #222329; box-shadow: none; }
+.exercise-status { padding: 12px 0; border-bottom: 1px solid #DEDFE0; }
+.exercise-metric { padding: 3px 10px; }
+.exercise-metric-value { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; color: #222329; font-size: 21px; font-weight: 600; }
+.exercise-metric-timer { color: #B08400; }
+.mini-progress { padding: 0; }
+.keyboard-panel { background-color: transparent; border: 0; border-radius: 0; padding: 2px; }
+.chart-surface { background-color: #FFFFFF; border: 1px solid #DEDFE0; border-radius: 8px; padding: 14px; }
+.notice { color: #C6B972; font-size: 12px; }
+/* Single style for accessibility. Increases both the target and the editable input. */
+.large-text .prompt { font-size: 35px; }
+.large-text textview, .large-text textview text { font-size: 29px; }
+.large-text .lesson-title { font-size: 19px; }
+.large-text .body-text { font-size: 18px; }
+.large-text .subtitle { font-size: 16px; }
+/* OpenDyslexic applies to UI and writing elements, not just page labels. */
+.dyslexic-font, .dyslexic-font label, .dyslexic-font button,
+.dyslexic-font textview, .dyslexic-font textview text {
+  font-family: "OpenDyslexic", sans-serif;
+}
+
+/* Clavia 2.2: Uiverse-inspired, rewritten as native GTK4 buttons. */
+button.primary.arrow-button {
+  border-radius: 8px;
+  background-color: #B08400;
+  color: #F4F4F1;
+  padding: 11px 19px;
+  font-weight: 700;
+  transition: background-color 140ms ease;
+}
+button.primary.arrow-button:hover { background-color: #CA9B04; }
+button.primary.arrow-button:active { background-color: #A47900; }
+.button-caption { color: #F4F4F1; font-weight: 700; }
+.button-arrow {
+  color: #F4F4F1;
+  font-family: "Inter", "Cantarell", sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  margin-left: 0;
+  transition: margin-left 140ms ease;
+}
+.button-arrow.arrow-hover { margin-left: 6px; }
+/* Second Uiverse concept: subtle slate fill expanding on hover,
+   represented as flat GTK button without browser-only ::before pseudo elements. */
+button.secondary {
+  background-color: #EEEEED;
+  color: #222329;
+  border: 1px solid #CFD0D1;
+  border-radius: 8px;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+button.secondary:hover { background-color: #E3E3E2; border-color: #666775; }
+button.secondary:active { background-color: #DDDDDD; }
+
+/* Light appearance: flat, high contrast, retains Slate geometry. */
+window, window.background { background-color: #F4F4F1; color: #222329; }
+button.primary, button.primary.arrow-button { background-color: #B08400; color: #FFFFFF; border-color: #B08400; }
+button.primary .button-caption, button.primary .button-arrow { color: #FFFFFF; }
+button.primary:hover { background-color: #946D00; border-color: #946D00; }
+.writing, textview, textview text { background-color: #FFFFFF; color: #222329; }
+.keycap.key-pressed { color: #222329; }
+
+button.theme-toggle { background: transparent; padding: 0; min-width: 110px; min-height: 48px; border: 0; border-radius: 6px; box-shadow: none; }
+button.theme-toggle:hover { background-color: alpha(#B08400, 0.08); }
+button.theme-toggle:focus-visible { outline: 2px solid #B08400; outline-offset: 2px; }
+
+/* Terminal statistiques : adaptation GTK4 native, modes jour et nuit. */
+.terminal-shell { background-color:#FAFAF8; border:1px solid #D8D8D4; border-radius:7px; }
+.terminal-toolbar { background-color:#E9E9E6; border-bottom:1px solid #D8D8D4; padding:11px 14px; border-radius:6px 6px 0 0; }
+.terminal-dot { border-radius:999px; min-width:11px; min-height:11px; }
+.terminal-dot-red {background-color:#CA4754;}
+.terminal-dot-amber {background-color:#D9AE4A;}
+.terminal-dot-green {background-color:#699F82;}
+.terminal-toolbar-name {color:#62656D;font-size:12px;font-family:"JetBrains Mono","DejaVu Sans Mono",monospace;}
+.terminal-online {color:#397D62;font-size:10px;}
+.terminal-body {padding:20px 23px 24px;}
+.terminal-prompt, .terminal-command, .terminal-user, .terminal-location, .terminal-dollar {font-family:"JetBrains Mono","DejaVu Sans Mono",monospace;font-size:12px;}
+.terminal-user {color:#397D62;}
+.terminal-location {color:#A67C00;}
+.terminal-dollar {color:#222329;}
+.terminal-command {color:#62656D;}
+.terminal-section {color:#62656D;font-size:11px;font-weight:700;letter-spacing:1px;margin-top:12px;}
+.terminal-metric {background-color:#E9E9E6;border:1px solid #D8D8D4;padding:15px;border-radius:5px;margin:4px;}
+.terminal-metric-label {color:#62656D;font-size:11px;}
+.terminal-metric-value, .terminal-metric-value-accent {font-family:"JetBrains Mono","DejaVu Sans Mono",monospace;font-size:23px;font-weight:600;}
+.terminal-metric-value {color:#222329;}
+.terminal-metric-value-accent {color:#A67C00;}
+.terminal-hint {color:#62656D;font-size:12px;font-family:"JetBrains Mono","DejaVu Sans Mono",monospace;}
+.terminal-record {border-bottom:1px solid #D8D8D4;padding:8px 2px;}
+.terminal-record-name {color:#222329;font-size:13px;}
+.terminal-record-value {color:#A67C00;font-family:"JetBrains Mono","DejaVu Sans Mono",monospace;font-size:12px;}
+
+/* Clavia 3.5 : volume vertical natif, inspiré d'Uiverse. */
+.volume-control { padding: 9px 12px; border-radius: 7px; }
+.clavia-volume-slider { min-width: 42px; min-height: 132px; }
+.clavia-volume-slider trough { min-width: 15px; border-radius: 5px; background: #D8D8D4; border: none; }
+.clavia-volume-slider highlight { background: #A67C00; border-radius: 5px; min-width: 15px; }
+.clavia-volume-slider slider { min-width: 20px; min-height: 8px; background: #222329; border: 1px solid #A67C00; border-radius: 4px; box-shadow: none; }
+.clavia-volume-slider slider:hover { background: #A67C00; }
+.volume-icon { color: #A67C00; -gtk-icon-size: 23px; }
+.volume-percentage { color: #222329; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+/* Sprint de 60 secondes : Uiverse Voxybuns en widgets GTK4 natifs.
+   Portée limitée à ce bouton ; ne modifie ni menus ni paramètres. */
+button.sprint-relief {
+  background-color: #25252B;
+  background-image: none;
+  border: 0;
+  border-radius: 12px;
+  padding: 2px 2px 5px;
+  box-shadow: none;
+  min-height: 49px;
+  min-width: 205px;
+  transition: none;
+}
+button.sprint-relief > box.sprint-top {
+  background-color: #E8E8E8;
+  border: 2px solid #141416;
+  border-radius: 11px;
+  padding: 9px 15px;
+  margin-top: 0px;
+  margin-bottom: 3px;
+  transition: margin-top 100ms ease, margin-bottom 100ms ease, background-color 100ms ease;
+}
+button.sprint-relief > box.sprint-top label.sprint-label {
+  color: #141416;
+  font-size: 14px;
+  font-weight: 700;
+}
+button.sprint-relief:hover > box.sprint-top {
+  margin-top: 0px;
+  margin-bottom: 5px;
+  background-color: #F1F0EA;
+}
+button.sprint-relief:active > box.sprint-top {
+  margin-top: 3px;
+  margin-bottom: 0px;
+}
+button.sprint-relief:focus-visible {
+  outline: 2px solid #E2B714;
+  outline-offset: 2px;
+}
+
+
+/* CTA Continuer en thème clair : même animation, contraste maintenu. */
+button.continue-motion {
+  background-color: #E2B714;
+  color: #18181C;
+  border: 2px solid #1E1E24;
+  border-radius: 10px;
+  min-height: 50px;
+  min-width: 230px;
+  padding: 0 14px;
+  box-shadow: none;
+  transition: background-color 130ms ease;
+}
+button.continue-motion:hover { background-color: #F0CB43; }
+button.continue-motion:active { background-color: #C9A10B; }
+button.continue-motion:focus-visible { outline: 2px solid #A47900; outline-offset: 2px; }
+button.continue-motion .continue-text,
+button.continue-motion .continue-arrow,
+button.continue-motion .continue-arrow-large {
+  color: #18181C; font-weight: 700;
+}
+button.continue-motion .continue-text { font-size: 15px; }
+button.continue-motion .continue-arrow { font-size: 19px; }
+button.continue-motion .continue-arrow-large { font-size: 23px; }
+
+/* Clavia 3.5.4 — fonds de niveaux, version claire. */
+.page.level-bg-geo {
+  background-color: #F2F2EF;
+  background-image:
+    linear-gradient(30deg, rgba(176,132,0,0.06) 12%, transparent 12.5%, transparent 87%, rgba(176,132,0,0.06) 87.5%, rgba(176,132,0,0.06)),
+    linear-gradient(150deg, rgba(34,35,41,0.03) 12%, transparent 12.5%, transparent 87%, rgba(34,35,41,0.03) 87.5%, rgba(34,35,41,0.03)),
+    linear-gradient(90deg, rgba(34,35,41,0.045) 2%, transparent 2.5%, transparent 97%, rgba(34,35,41,0.045) 97.5%, rgba(34,35,41,0.045));
+  background-size: 64px 56px, 64px 56px, 64px 56px;
+  background-position: 0 0, 32px 28px, 0 0;
+}
+.page.level-bg-paper {
+  background-color: #F6F6F3;
+  background-image:
+    linear-gradient(rgba(34,35,41,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,35,41,0.06) 1px, transparent 1px);
+  background-size: 55px 55px;
+}
+.page.level-bg-grid {
+  background-color: #ECECE7;
+  background-image:
+    linear-gradient(rgba(80,82,86,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80,82,86,0.10) 1px, transparent 1px);
+  background-size: 55px 55px;
+}
+.page.level-bg-geo .exercise-card,
+.page.level-bg-paper .exercise-card,
+.page.level-bg-grid .exercise-card {
+  background-color: rgba(255,255,255,0.95);
+}
+.page.level-bg-geo .keyboard-body,
+.page.level-bg-paper .keyboard-body,
+.page.level-bg-grid .keyboard-body {
+  background-color: rgba(212,213,211,0.95);
+}

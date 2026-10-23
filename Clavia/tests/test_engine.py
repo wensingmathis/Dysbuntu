@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from content import LESSONS
 from engine import (compute_metrics, consecutive_days, error_positions,
-                    level_from_xp, next_expected, rich_target)
+                    level_from_xp, next_expected, rich_target, same_character, matches_target)
 from storage import Storage
 
 
@@ -24,6 +24,15 @@ class TestGame(unittest.TestCase):
         self.assertEqual(next_expected('été', 'é'), 't')
         self.assertEqual(next_expected('test', 'test'), '')
         self.assertEqual(error_positions('bonjour', 'bonx'), {3})
+
+    def test_apostrophes_azerty(self):
+        self.assertTrue(same_character("'", '’'))
+        self.assertTrue(matches_target('d’accord', "d'accord"))
+        self.assertTrue(matches_target("d'accord", 'd’accord'))
+        self.assertFalse(matches_target('d’accord', 'd-acord'))
+        self.assertEqual(error_positions('d’accord', "d'accord"), set())
+        self.assertNotIn('#CA4754', rich_target('d’accord', "d'accord"))
+        self.assertIn('background=', rich_target('abc', 'a'))
 
     def test_markup_safe(self):
         self.assertIn('&amp;', rich_target('a&b', 'a'))

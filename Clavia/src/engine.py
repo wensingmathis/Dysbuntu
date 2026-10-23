@@ -3,6 +3,18 @@ from datetime import date, timedelta
 from html import escape
 
 
+def same_character(typed: str, expected: str) -> bool:
+    """Les deux apostrophes françaises sont équivalentes pour l'apprenant."""
+    return typed == expected or (typed in ("'", "’") and expected in ("'", "’"))
+
+
+def matches_target(target: str, entered: str) -> bool:
+    """Validation sans confondre les autres caractères ni masquer les fautes."""
+    return len(target) == len(entered) and all(
+        same_character(t, e) for t, e in zip(entered, target)
+    )
+
+
 def next_expected(target: str, entered: str) -> str:
     """Prochain caractère à afficher sur le clavier virtuel."""
     i = len(entered)
@@ -10,7 +22,7 @@ def next_expected(target: str, entered: str) -> str:
 
 
 def error_positions(target: str, entered: str) -> set[int]:
-    return {i for i, char in enumerate(entered) if i >= len(target) or char != target[i]}
+    return {i for i, char in enumerate(entered) if i >= len(target) or not same_character(char, target[i])}
 
 
 def rich_target(target: str, entered: str) -> str:
@@ -19,10 +31,10 @@ def rich_target(target: str, entered: str) -> str:
     for i, char in enumerate(target):
         safe = escape(char)
         if i < len(entered):
-            color = '#D1D0C5' if entered[i] == char else '#CA4754'
+            color = '#D1D0C5' if same_character(entered[i], char) else '#CA4754'
             pieces.append(f'<span foreground="{color}">{safe}</span>')
         elif i == len(entered):
-            pieces.append(f'<span foreground="#E2B714" underline="single">{safe}</span>')
+            pieces.append(f'<span foreground="#E2B714" background="#423B25" weight="bold" underline="single">{safe}</span>')
         else:
             pieces.append(f'<span foreground="#646669">{safe}</span>')
     return ''.join(pieces)

@@ -2,6 +2,7 @@
 """Clavia : jeu de frappe AZERTY natif pour Linux (GTK 4)."""
 import math
 import random
+import shutil
 import subprocess
 import sys
 import time
@@ -13,17 +14,30 @@ gi.require_version('Gdk', '4.0')
 from gi.repository import Gdk, GLib, Gtk, Pango
 
 from content import LESSONS, SPRINT_WORDS
-from engine import compute_metrics, consecutive_days, level_from_xp, next_expected, rich_target
+from engine import compute_metrics, consecutive_days, level_from_xp, next_expected, rich_target, same_character, matches_target
 from storage import Storage
+from audio import SoundManager
 
 BASE = Path(__file__).resolve().parent.parent
 CSS_FILE = BASE / 'assets' / 'style.css'
+LIGHT_CSS_FILE = BASE / 'assets' / 'style-light.css'
 ROWS = (
     ('²', '&', 'é', '"', "'", '(', '-', 'è', '_', 'ç', 'à', ')', '='),
     ('a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '^', '$'),
     ('q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'ù', '*'),
     ('<', 'w', 'x', 'c', 'v', 'b', 'n', ',', ';', ':', '!'),
     ('ESPACE',),
+)
+
+
+# Disposition physique AZERTY français (France, touches classiques).
+# Chaque touche = (inscription, largeur relative, caractère utilisé pour le guidage).
+KEYBOARD_LAYOUT = (
+    [('Échap', 1.35, None), ('²', 1, '²'), ('&\n1', 1, '&'), ('é\n2', 1, 'é'), ('\"\n3', 1, '"'), ("'\n4", 1, "'"), ('(\n5', 1, '('), ('-\n6', 1, '-'), ('è\n7', 1, 'è'), ('_\n8', 1, '_'), ('ç\n9', 1, 'ç'), ('à\n0', 1, 'à'), (')\n°', 1, ')'), ('=\n+', 1, '='), ('⌫', 1.5, 'RETOUR')],
+    [('Tab', 1.55, None), *[(c, 1, c) for c in 'azertyuiop'], ('^\n¨', 1, '^'), ('$\n£', 1, '$'), ('Entrée', 1.6, None)],
+    [('Verr Maj', 1.85, None), *[(c, 1, c) for c in 'qsdfghjklm'], ('ù\n%', 1, 'ù'), ('*\nµ', 1, '*'), ('↵', 1.5, None)],
+    [('Maj', 1.5, None), ('<\n>', 1, '<'), *[(c, 1, c) for c in 'wxcvbn'], (',\n?', 1, ','), (';\n.', 1, ';'), (':\n/', 1, ':'), ('!\n§', 1, '!'), ('Maj', 2.2, None)],
+    [('Ctrl', 1.3, None), ('Super', 1.3, None), ('Alt', 1.2, None), ('ESPACE', 5.8, 'ESPACE'), ('AltGr', 1.35, None), ('Fn', 1.0, None), ('Ctrl', 1.3, None)],
 )
 
 
@@ -69,9 +83,90 @@ def add_button(parent, label, callback, css='secondary', expand=False):
         button.add_controller(hover)
     else:
         button.set_label(label)
-    button.connect('clicked', lambda *_: callback())
+    def clicked(*_):
+        app = getattr(parent.get_root(), 'get_application', lambda: None)()
+        if app is not None and hasattr(app, 'audio'):
+            app.audio.play('button_click')
+        callback()
+    button.connect('clicked', clicked)
     if expand:
         button.set_hexpand(True)
+    parent.append(button)
+    return button
+
+
+def add_continue_button(parent, label, callback):
+    """CTA Continuer : animation Uiverse adaptée aux widgets GTK4.
+
+    Pas de surcharge graphique, minuterie ou emoji. Le bouton reste accessible
+    au clavier et conserve le comportement de lancement de leçon.
+    """
+    button = Gtk.Button()
+    button.add_css_class('continue-motion')
+    button.set_tooltip_text(label)
+    stack = Gtk.Stack()
+    stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+    stack.set_transition_duration(130)
+    stack.set_hexpand(True)
+
+    normal = make_box(False, 12, 'continue-face')
+    normal.set_halign(Gtk.Align.CENTER)
+    normal.append(widget_label(label, 'continue-text'))
+    normal.append(widget_label('→', 'continue-arrow'))
+
+    highlighted = make_box(False, 12, 'continue-face')
+    highlighted.set_halign(Gtk.Align.CENTER)
+    highlighted.append(widget_label('Jouer maintenant', 'continue-text'))
+    highlighted.append(widget_label('→', 'continue-arrow-large'))
+
+    stack.add_named(normal, 'normal')
+    stack.add_named(highlighted, 'hover')
+    stack.set_visible_child_name('normal')
+    button.set_child(stack)
+
+    hover = Gtk.EventControllerMotion()
+    hover.connect('enter', lambda *_: stack.set_visible_child_name('hover'))
+    hover.connect('leave', lambda *_: stack.set_visible_child_name('normal'))
+    button.add_controller(hover)
+
+    def clicked(*_):
+        root = button.get_root()
+        app = root.get_application() if root is not None and hasattr(root, 'get_application') else None
+        if app is not None and hasattr(app, 'audio'):
+            app.audio.play('button_click')
+        callback()
+
+    button.connect('clicked', clicked)
+    parent.append(button)
+    return button
+
+
+def add_sprint_button(parent, callback):
+    """Bouton Sprint façon Uiverse / Voxybuns, GTK4 natif.
+
+    Isolé du style des autres boutons et sans nouveaux timers.
+    La marge du dessus représente l'enfoncement physique de la touche.
+    """
+    button = Gtk.Button()
+    button.add_css_class('sprint-relief')
+    button.set_tooltip_text('Lancer le défi chronométré de 60 secondes')
+    top = make_box(False, 0, 'sprint-top')
+    top.set_halign(Gtk.Align.FILL)
+    top.set_valign(Gtk.Align.CENTER)
+    label = widget_label('Sprint de 60 secondes', 'sprint-label')
+    label.set_hexpand(True)
+    label.set_halign(Gtk.Align.CENTER)
+    top.append(label)
+    button.set_child(top)
+
+    def clicked(*_):
+        root = button.get_root()
+        app = root.get_application() if root is not None and hasattr(root, 'get_application') else None
+        if app is not None and hasattr(app, 'audio'):
+            app.audio.play('button_click')
+        callback()
+
+    button.connect('clicked', clicked)
     parent.append(button)
     return button
 
@@ -92,11 +187,72 @@ class Flame(Gtk.Picture):
         self.set_content_fit(Gtk.ContentFit.CONTAIN)
 
 
+
+class ThemeSwitch(Gtk.Button):
+    """Bouton jour/nuit natif GTK : ciel, nuages, étoiles, soleil et lune dessinés en 2D."""
+
+    def __init__(self, dark, callback):
+        super().__init__()
+        self.dark = dark
+        self.callback = callback
+        self.set_tooltip_text('Passer au thème clair' if dark else 'Passer au thème sombre')
+        self.add_css_class('theme-toggle')
+        self.set_focusable(True)
+        self.canvas = Gtk.DrawingArea()
+        self.canvas.set_content_width(110)
+        self.canvas.set_content_height(48)
+        self.canvas.set_draw_func(self.draw)
+        self.set_child(self.canvas)
+        self.connect('clicked', self.clicked)
+
+    def clicked(self, *_):
+        self.dark = not self.dark
+        self.set_tooltip_text('Passer au thème clair' if self.dark else 'Passer au thème sombre')
+        self.canvas.queue_draw()
+        self.callback(self.dark)
+
+    def draw(self, _area, cr, w, h):
+        import math
+        # Capsule mate : nuit à droite, jour à gauche.
+        cr.set_source_rgb(*( (0.17, 0.26, 0.38) if self.dark else (0.62, 0.82, 0.93)))
+        cr.new_sub_path()
+        cr.arc(24, 24, 21, math.pi/2, 3*math.pi/2)
+        cr.arc(86, 24, 21, -math.pi/2, math.pi/2)
+        cr.close_path(); cr.fill()
+        if self.dark:
+            cr.set_source_rgb(0.97, 0.97, 0.86)
+            for x,y,r in ((19,12,1.7),(34,19,1.2),(48,10,1.4),(51,34,1.2),(16,34,1.0)):
+                cr.arc(x,y,r,0,2*math.pi); cr.fill()
+        else:
+            cr.set_source_rgba(1,1,1,0.82)
+            for x,y,r in ((64,32,9),(75,30,12),(87,33,8)):
+                cr.arc(x,y,r,0,2*math.pi); cr.fill()
+        knob_x = 82 if self.dark else 28
+        cr.set_source_rgba(0.07,0.08,0.10,0.20)
+        cr.arc(knob_x,25,19,0,2*math.pi); cr.fill()
+        cr.set_source_rgb(0.96,0.96,0.93)
+        cr.arc(knob_x,23,19,0,2*math.pi); cr.fill()
+        if self.dark:
+            cr.set_source_rgb(0.75,0.76,0.77)
+            cr.arc(knob_x+3,22,11,0,2*math.pi); cr.fill()
+            cr.set_source_rgb(0.96,0.96,0.93)
+            cr.arc(knob_x-2,19,10,0,2*math.pi); cr.fill()
+        else:
+            cr.set_source_rgb(0.95,0.68,0.12)
+            cr.arc(knob_x,23,11,0,2*math.pi); cr.fill()
+            for i in range(8):
+                theta=i*math.pi/4
+                cr.set_line_width(1.6)
+                cr.move_to(knob_x+13*math.cos(theta),23+13*math.sin(theta))
+                cr.line_to(knob_x+15*math.cos(theta),23+15*math.sin(theta))
+                cr.stroke()
+
 class SpeedGraph(Gtk.DrawingArea):
     """Courbe minimaliste des vitesses enregistrées, sans dépendance externe."""
 
-    def __init__(self, sessions):
+    def __init__(self, sessions, dark=True):
         super().__init__()
+        self.dark = dark
         self.speeds = [row['cpm'] for row in sessions]
         self.set_content_width(760)
         self.set_content_height(185)
@@ -112,7 +268,7 @@ class SpeedGraph(Gtk.DrawingArea):
         max_speed = max(40, max(self.speeds) * 1.15)
         for n in range(4):
             y = bottom - chart_height * n / 3
-            cr.set_source_rgb(0.22, 0.22, 0.24)
+            cr.set_source_rgb(*( (0.24, 0.24, 0.27) if self.dark else (0.85, 0.86, 0.87)))
             cr.set_line_width(1)
             cr.move_to(left, y)
             cr.line_to(right, y)
@@ -122,7 +278,7 @@ class SpeedGraph(Gtk.DrawingArea):
             x = left + (right - left) * i / max(1, len(self.speeds) - 1)
             y = bottom - chart_height * (value - min_speed) / max_speed
             points.append((x, y))
-        cr.set_source_rgb(226 / 255, 183 / 255, 20 / 255)
+        cr.set_source_rgb(*( (226 / 255, 183 / 255, 20 / 255) if self.dark else (176 / 255, 132 / 255, 0)))
         cr.set_line_width(2)
         for i, (x, y) in enumerate(points):
             if i == 0:
@@ -142,10 +298,16 @@ class Clavia(Gtk.Application):
         super().__init__(application_id='fr.clavia.azerty')
         self.db = Storage()
         self.large = self.db.preference('large', '0') == '1'
+        self.dark = self.db.preference('dark', '1') == '1'
         self.motion = self.db.preference('motion', '1') == '1'
         self.show_keys = self.db.preference('keyboard', '1') == '1'
         self.dyslexic = self.db.preference('dyslexic', '0') == '1'
         self.dyslexic_available = self.check_font()
+        self.audio = SoundManager(BASE / 'assets' / 'sounds',
+                                  enabled=self.db.preference('sounds', '1') == '1',
+                                  keyboard=self.db.preference('keyboard_sounds', '0') == '1',
+                                  rewards=self.db.preference('reward_sounds', '1') == '1',
+                                  volume=int(self.db.preference('sound_volume', '55')))
         self.timer_id = None
         self.flame_id = None
         self.key_pressed_timeout = None
@@ -176,7 +338,7 @@ class Clavia(Gtk.Application):
         # Demande également une décoration de fenêtre sombre au thème système.
         gtk_settings = Gtk.Settings.get_default()
         if gtk_settings is not None:
-            gtk_settings.set_property('gtk-application-prefer-dark-theme', True)
+            gtk_settings.set_property('gtk-application-prefer-dark-theme', self.dark)
         self.window = Gtk.ApplicationWindow(application=self, title='Clavia — Apprendre le clavier AZERTY')
         self.window.set_default_size(1120, 800)
         self.window.set_size_request(790, 580)
@@ -217,17 +379,20 @@ class Clavia(Gtk.Application):
         add_button(header, 'Parcours', self.home, 'nav')
         add_button(header, 'Statistiques', self.stats, 'nav')
         add_button(header, 'Paramètres', self.settings, 'nav')
+        self.theme_button = ThemeSwitch(self.dark, self.change_theme)
+        header.append(self.theme_button)
 
     def apply_theme(self):
-        """Une seule palette Dark Slate ; les polices d'accessibilité restent actives."""
+        """Palettes Slate sombre / claire, sans toucher aux préférences de lecture."""
         if hasattr(self, 'provider'):
             Gtk.StyleContext.remove_provider_for_display(Gdk.Display.get_default(), self.provider)
-        raw = CSS_FILE.read_text(encoding='utf-8')
+        raw = (CSS_FILE if self.dark else LIGHT_CSS_FILE).read_text(encoding='utf-8')
         self.provider = Gtk.CssProvider()
         self.provider.load_from_string(raw)
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(), self.provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         if hasattr(self, 'window'):
+            self.window.set_property('title', 'Clavia — AZERTY')
             for widget in (self.window,):
                 if self.large:
                     widget.add_css_class('large-text')
@@ -239,6 +404,17 @@ class Clavia(Gtk.Application):
                     widget.remove_css_class('dyslexic-font')
 
 
+    def change_theme(self, dark):
+        self.dark = dark
+        self.db.set_preference('dark', '1' if dark else '0')
+        settings = Gtk.Settings.get_default()
+        if settings is not None:
+            settings.set_property('gtk-application-prefer-dark-theme', dark)
+        self.apply_theme()
+        if hasattr(self, 'theme_button') and self.theme_button.dark != dark:
+            self.theme_button.dark = dark
+            self.theme_button.canvas.queue_draw()
+
     def stop_timers(self):
         for field in ('timer_id', 'flame_id', 'key_pressed_timeout'):
             timer = getattr(self, field)
@@ -246,10 +422,29 @@ class Clavia(Gtk.Application):
                 GLib.source_remove(timer)
                 setattr(self, field, None)
 
+    def clear_level_background(self):
+        for css in ('level-bg-geo', 'level-bg-paper', 'level-bg-grid'):
+            self.page.remove_css_class(css)
+
+    def apply_level_background(self, lesson=None, sprint=False):
+        self.clear_level_background()
+        if sprint:
+            self.page.add_css_class('level-bg-grid')
+            return
+        if lesson is None:
+            return
+        if lesson.id <= 12:
+            self.page.add_css_class('level-bg-geo')
+        elif lesson.id <= 24:
+            self.page.add_css_class('level-bg-paper')
+        else:
+            self.page.add_css_class('level-bg-grid')
+
     def new_page(self):
         self.stop_timers()
         self.finished = True
         clear(self.page)
+        self.clear_level_background()
         self.header.set_visible(True)
         self.scroller.get_vadjustment().set_value(0)
 
@@ -279,9 +474,9 @@ class Clavia(Gtk.Application):
         actions = make_box(False, 12)
         intro.append(actions)
         next_lesson = LESSONS[min(unlocked, len(LESSONS)) - 1]
-        add_button(actions, f'Continuer : niveau {next_lesson.id}',
-                   lambda l=next_lesson: self.start_lesson(l), 'primary')
-        add_button(actions, 'Sprint de 60 secondes', self.start_sprint, 'secondary')
+        add_continue_button(actions, f'Continuer : niveau {next_lesson.id}',
+                            lambda l=next_lesson: self.start_lesson(l))
+        add_sprint_button(actions, self.start_sprint)
 
         # Deux colonnes : l'ancienne rangée horizontale faisait disparaître
         # certaines cartes hors de la fenêtre (défilement horizontal désactivé).
@@ -376,6 +571,7 @@ class Clavia(Gtk.Application):
 
     def start_exercise(self):
         self.new_page()
+        self.apply_level_background(self.lesson, self.sprint)
         self.header.set_visible(False)
         self.finished = False
         self.stage = 0
@@ -450,17 +646,26 @@ class Clavia(Gtk.Application):
             keyboard_panel.append(widget_label('CLAVIER AZERTY', 'eyebrow'))
             self.keys_hint = widget_label('La prochaine touche à utiliser est surlignée.', 'subtitle')
             keyboard_panel.append(self.keys_hint)
-            board = make_box(gap=5)
+            board = make_box(gap=5, css='keyboard-body')
+            board.set_halign(Gtk.Align.CENTER)
             keyboard_panel.append(board)
-            for row in ROWS:
-                line = make_box(False, 5)
+            for row in KEYBOARD_LAYOUT:
+                line = make_box(False, 4, css='keyboard-row')
                 line.set_halign(Gtk.Align.CENTER)
                 board.append(line)
-                for char in row:
-                    key = widget_label(char, 'keycap')
-                    key.set_size_request(215 if char == 'ESPACE' else 43, 36)
+                for title, unit, char in row:
+                    key = widget_label(title, 'keycap')
+                    key.add_css_class('keyboard-key')
+                    if unit >= 1.3:
+                        key.add_css_class('key-modifier')
+                    if char == 'ESPACE':
+                        key.add_css_class('key-space')
+                    key.set_justify(Gtk.Justification.CENTER)
+                    key.set_xalign(.5)
+                    key.set_size_request(round(34 * unit + 5 * (unit - 1)), 45)
                     line.append(key)
-                    self.key_labels.append((char, key))
+                    if char:
+                        self.key_labels.append((char, key))
         self.update_prompt()
         self.timer_id = GLib.timeout_add(130, self.tick)
         GLib.idle_add(self.focus_entry)
@@ -493,6 +698,8 @@ class Clavia(Gtk.Application):
         if (state & Gdk.ModifierType.CONTROL_MASK) and keyval in (Gdk.KEY_v, Gdk.KEY_V):
             self.feedback.set_text('Tape toi-même le texte pour gagner des points.')
             return True
+        if keyval == Gdk.KEY_BackSpace:
+            self.audio.play('key_backspace')
         if keyval == Gdk.KEY_Escape:
             self.home()
             return True
@@ -501,6 +708,8 @@ class Clavia(Gtk.Application):
             if codepoint and codepoint >= 32:
                 pressed = chr(codepoint).lower()
                 pressed = 'ESPACE' if pressed == ' ' else pressed
+                if keyval == Gdk.KEY_BackSpace:
+                    pressed = 'RETOUR'
                 for char, key in self.key_labels:
                     key.remove_css_class('key-pressed')
                     if char == pressed:
@@ -527,8 +736,11 @@ class Clavia(Gtk.Application):
             if char in ('\n', '\r'):
                 continue
             self.attempts += 1
-            if offset + index >= len(expected) or char != expected[offset + index]:
+            if offset + index >= len(expected) or not same_character(char, expected[offset + index]):
                 self.errors += 1
+                self.audio.play('key_error')
+            else:
+                self.audio.play('key_press')
 
     def current_input(self):
         return self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), False)
@@ -542,12 +754,12 @@ class Clavia(Gtk.Application):
         if not self.sprint:
             progress = (self.stage + min(len(entered), len(target)) / max(1, len(target))) / len(self.prompts)
             self.bar.set_fraction(min(1.0, progress))
-        matches = sum(1 for a, b in zip(entered, target) if a == b)
+        matches = sum(1 for a, b in zip(entered, target) if same_character(a, b))
         self.current_length = matches
-        if entered == target:
+        if matches_target(target, entered):
             # GTK ne doit pas vider le TextBuffer depuis le signal « changed ».
             GLib.idle_add(self.next_step, self.stage)
-        elif len(entered) > len(target) or any(a != b for a, b in zip(entered, target)):
+        elif len(entered) > len(target) or any(not same_character(a, b) for a, b in zip(entered, target)):
             self.feedback.set_text('Une erreur ? Corrige les caractères rouges avec Retour arrière.')
         elif entered:
             self.feedback.set_text('Très bien, continue !')
@@ -571,6 +783,8 @@ class Clavia(Gtk.Application):
         if not self.show_keys:
             return
         token = wanted.lower()
+        if token == '’':
+            token = "'"
         if token == ' ':
             token = 'ESPACE'
         if token not in {k for k, _ in self.key_labels}:
@@ -580,8 +794,15 @@ class Clavia(Gtk.Application):
                 key.add_css_class('key-next')
             else:
                 key.remove_css_class('key-next')
-        self.keys_hint.set_text(f'Prochaine touche : {"Espace" if token == "ESPACE" else token}'
-                                 if token else 'Continue à taper avec précision.')
+        if token == "'":
+            message = "Prochaine touche : ’ — apostrophe, touche 4 (sans Maj)"
+        elif token == 'ESPACE':
+            message = 'Prochaine touche : Espace'
+        elif token:
+            message = f'Prochaine touche : {wanted}'
+        else:
+            message = 'Continue à taper avec précision.'
+        self.keys_hint.set_text(message)
 
     def elapsed(self):
         return max(0.0, time.monotonic() - self.started) if self.started else 0.0
@@ -613,8 +834,9 @@ class Clavia(Gtk.Application):
         return True
 
     def next_step(self, expected_stage):
-        if self.finished or self.stage != expected_stage or self.current_input() != self.prompts[self.stage]:
+        if self.finished or self.stage != expected_stage or not matches_target(self.prompts[self.stage], self.current_input()):
             return False
+        self.audio.play('word_complete')
         self.completed_chars += len(self.prompts[self.stage])
         self.completed_words += 1
         if self.sprint and self.elapsed() >= 60:
@@ -641,9 +863,28 @@ class Clavia(Gtk.Application):
         lesson = self.lesson
         sprint = self.sprint
         words = self.completed_words
+        before = self.db.summary()
+        old_level = level_from_xp(before['xp'])
+        old_streak = consecutive_days(self.db.active_days())
+        old_best = self.db.best(lesson.id)['best_score'] if not sprint else max(
+            [r['best_score'] for r in self.db.records() if r['mode'] == 'Sprint'] or [0])
+        previous_completed = len(self.db.completed_ids())
         if typed:
             self.db.save(None if sprint else lesson.id, 'Sprint' if sprint else lesson.kind,
                          typed, self.attempts, self.errors, duration, metrics)
+        if typed:
+            self.audio.play('timer_end' if sprint else 'lesson_complete')
+            if metrics['score'] > (old_best or 0) and old_best:
+                self.audio.play('new_record')
+            if level_from_xp(before['xp'] + metrics['xp']) > old_level:
+                self.audio.play('level_up')
+            elif metrics['xp'] > 0:
+                self.audio.play('xp_gain')
+            if consecutive_days(self.db.active_days()) > old_streak:
+                self.audio.play('streak_gain')
+            if (not sprint and previous_completed < len(self.db.completed_ids())
+                    and len(self.db.completed_ids()) in (1, 13, 18, 36)):
+                self.audio.play('badge_unlock')
         self.new_page()
         banner = self.panel(css='result-card', gap=12)
         banner.append(widget_label('TEMPS ÉCOULÉ' if sprint else 'LEÇON TERMINÉE', 'eyebrow'))
@@ -668,72 +909,118 @@ class Clavia(Gtk.Application):
                    lambda l=lesson: self.start_lesson(l), 'secondary')
         add_button(actions, 'Retour au parcours', self.home, 'secondary')
 
+    def terminal_panel(self, title, subtitle=''):
+        """Terminal GTK4 accessible : décorations non interactives, contenu réel."""
+        shell = make_box(gap=0, css='terminal-shell')
+        shell.set_hexpand(True)
+        self.page.append(shell)
+        toolbar = make_box(False, 9, css='terminal-toolbar')
+        shell.append(toolbar)
+        dots = make_box(False, 6)
+        toolbar.append(dots)
+        for color in ('terminal-dot-red', 'terminal-dot-amber', 'terminal-dot-green'):
+            dot = Gtk.Box()
+            dot.add_css_class('terminal-dot')
+            dot.add_css_class(color)
+            dot.set_size_request(11, 11)
+            dots.append(dot)
+        name = widget_label(title, 'terminal-toolbar-name')
+        name.set_hexpand(True)
+        name.set_xalign(0.5)
+        toolbar.append(name)
+        toolbar.append(widget_label('●', 'terminal-online'))
+        body = make_box(gap=18, css='terminal-body')
+        shell.append(body)
+        prompt = make_box(False, 4, css='terminal-prompt')
+        body.append(prompt)
+        prompt.append(widget_label('clavia@local', 'terminal-user'))
+        prompt.append(widget_label(':~/statistiques', 'terminal-location'))
+        prompt.append(widget_label('$', 'terminal-dollar'))
+        prompt.append(widget_label(subtitle, 'terminal-command'))
+        return body
+
+    def terminal_metric(self, parent, label, value, accent=False):
+        block = make_box(gap=5, css='terminal-metric')
+        block.set_hexpand(True)
+        if parent is not None:
+            parent.append(block)
+        block.append(widget_label(label, 'terminal-metric-label'))
+        block.append(widget_label(str(value), 'terminal-metric-value-accent' if accent else 'terminal-metric-value'))
+        return block
+
     def stats(self):
         self.new_page()
-        self.page_title('Mes statistiques', 'Tes résultats sont enregistrés uniquement sur cet ordinateur.')
+        self.page_title('Mes statistiques', 'Une vue claire de ta progression, stockée uniquement sur cet ordinateur.')
         summary = self.db.summary()
         streak = consecutive_days(self.db.active_days())
-        row = make_box(False, 12)
-        self.page.append(row)
-        self.inline_stat(row, 'XP GAGNÉS', str(summary['xp']))
-        self.inline_stat(row, 'POINTS', str(summary['score']))
-        self.inline_stat(row, 'SÉRIE', f'{streak} jours')
-        self.inline_stat(row, 'EXERCICES', str(summary['sessions']))
-        row2 = make_box(False, 12)
-        self.page.append(row2)
         acc = round(100 * max(0, summary['attempts'] - summary['errors']) /
                     max(1, summary['attempts']))
         speed = round(summary['chars'] * 60 / max(1.0, summary['seconds']))
-        self.inline_stat(row2, 'PRÉCISION TOTALE', f'{acc} %')
-        self.inline_stat(row2, 'VITESSE MOYENNE', f'{speed} car/min')
-        self.inline_stat(row2, 'CARACTÈRES ÉCRITS', str(summary['chars']))
-        self.inline_stat(row2, 'ERREURS', str(summary['errors']))
-        self.page.append(widget_label('Évolution de ta vitesse', 'section-title'))
+        terminal = self.terminal_panel('clavia — statistiques', 'afficher --progression')
+        terminal.append(widget_label('RÉSUMÉ DE SESSION', 'terminal-section'))
+        grid = Gtk.Grid(column_spacing=0, row_spacing=0)
+        grid.set_column_homogeneous(True)
+        terminal.append(grid)
+        overview = (
+            ('XP GAGNÉS', summary['xp'], True),
+            ('POINTS', summary['score'], False),
+            ('JOURS DE SUITE', f'{streak} jours', True),
+            ('EXERCICES', summary['sessions'], False),
+            ('PRÉCISION', f'{acc} %', False),
+            ('VITESSE MOYENNE', f'{speed} car/min', True),
+            ('CARACTÈRES', summary['chars'], False),
+            ('ERREURS', summary['errors'], False),
+        )
+        for i, (name, value, accented) in enumerate(overview):
+            grid.attach(self.terminal_metric(None, name, value, accented), i % 2, i // 2, 1, 1)
+        terminal.append(widget_label('ÉVOLUTION · 20 DERNIERS EXERCICES', 'terminal-section'))
         recent = self.db.recent_sessions(20)
         if recent:
-            chart = self.panel(css='chart-surface', gap=10)
-            chart.append(widget_label('20 DERNIERS EXERCICES · CARACTÈRES PAR MINUTE', 'eyebrow'))
-            chart.append(SpeedGraph(recent))
-            chart.append(widget_label('Chaque point représente un exercice terminé.', 'muted'))
+            terminal.append(SpeedGraph(recent, dark=self.dark))
+            terminal.append(widget_label('Vitesse en caractères/minute • 1 point = 1 exercice', 'terminal-hint'))
         else:
-            self.page.append(widget_label('Le graphique apparaîtra après ton premier exercice.', 'subtitle'))
-        self.page.append(widget_label('Tes records par mode', 'section-title'))
-        records = self.panel()
-        if not self.db.records():
-            records.append(widget_label('Termine une leçon pour voir tes premiers records.', 'subtitle'))
-        for record in self.db.records():
-            line = make_box(False, 10, css='record-line')
-            records.append(line)
-            text = widget_label(record['mode'], 'lesson-title')
-            text.set_hexpand(True)
-            line.append(text)
-            line.append(widget_label(f'{record["best_cpm"]} car/min', 'mini-accent'))
-            line.append(widget_label(f'{record["best_score"]} points', 'subtitle'))
-
-        self.page.append(widget_label('Badges', 'section-title'))
-        box = self.panel()
+            terminal.append(widget_label('Aucune donnée. Termine un exercice pour afficher la courbe.', 'terminal-hint'))
+        terminal.append(widget_label('RECORDS PERSONNELS', 'terminal-section'))
+        records = self.db.records()
+        if not records:
+            terminal.append(widget_label('Aucun record enregistré pour le moment.', 'terminal-hint'))
+        for record in records:
+            line = make_box(False, 12, css='terminal-record')
+            terminal.append(line)
+            label = widget_label(record['mode'], 'terminal-record-name')
+            label.set_hexpand(True)
+            line.append(label)
+            line.append(widget_label(f'{record["best_cpm"]} car/min', 'terminal-record-value'))
+            line.append(widget_label(f'{record["best_score"]} pts', 'terminal-hint'))
+        terminal.append(widget_label('BADGES ET OBJECTIFS', 'terminal-section'))
         complete = self.db.completed_ids()
         badges = (
             ('Première leçon', len(complete) > 0),
             ('100 caractères', summary['chars'] >= 100),
             ('Premier texte', any(i >= 13 for i in complete)),
             ('Trois jours de suite', streak >= 3),
-            ('200 car/min', any(row['best_cpm'] >= 200 for row in self.db.records())),
+            ('200 car/min', any(row['best_cpm'] >= 200 for row in records)),
             ('Parcours terminé', len(complete) == len(LESSONS)),
         )
         for name, unlocked in badges:
-            line = make_box(False, 12, css='badge-line')
-            box.append(line)
-            line.append(widget_label('ACQUIS' if unlocked else 'À OBTENIR',
-                                     'mini-accent' if unlocked else 'muted'))
-            line.append(widget_label(name, 'body-text'))
+            line = make_box(False, 10, css='terminal-record')
+            terminal.append(line)
+            line.append(widget_label('[OK]' if unlocked else '[--]',
+                                     'terminal-user' if unlocked else 'terminal-hint'))
+            line.append(widget_label(name, 'terminal-record-name'))
         add_button(self.page, 'Retour au parcours', self.home, 'primary')
 
     def settings(self):
         self.new_page()
         self.page_title('Paramètres', 'Adapte le jeu à ton confort de lecture et de frappe.')
         panel = self.panel()
-        panel.append(widget_label('THÈME DARK SLATE · CONTRASTE SOBRE', 'eyebrow'))
+        panel.append(widget_label('APPARENCE · JOUR / NUIT', 'eyebrow'))
+        theme_line = make_box(False, 12, css='setting-line')
+        panel.append(theme_line)
+        theme_lbl = widget_label('Thème sombre / clair', 'body-text')
+        theme_lbl.set_hexpand(True)
+        theme_line.append(theme_lbl)
+        theme_line.append(ThemeSwitch(self.dark, self.change_theme))
         prefs = (
             ('Texte plus grand', 'large', self.large),
             ('Afficher le clavier', 'keyboard', self.show_keys),
@@ -754,21 +1041,77 @@ class Clavia(Gtk.Application):
                 lbl.set_text(name + ' (non installée)')
             toggle.connect('notify::active', self.change_setting, prop)
             line.append(toggle)
+        panel.append(widget_label('SONS', 'eyebrow'))
+        for name, prop, value in (
+            ('Activer les sons', 'sounds', self.audio.enabled),
+            ('Sons de frappe', 'keyboard_sounds', self.audio.keyboard),
+            ('Sons de récompense', 'reward_sounds', self.audio.rewards),
+        ):
+            line = make_box(False, 12, css='setting-line')
+            panel.append(line)
+            label = widget_label(name, 'body-text')
+            label.set_hexpand(True)
+            line.append(label)
+            switch = Gtk.Switch()
+            switch.set_active(value)
+            switch.set_valign(Gtk.Align.CENTER)
+            switch.connect('notify::active', self.change_setting, prop)
+            line.append(switch)
+        # Curseur de volume vertical inspiré d'Uiverse, implémenté avec GTK4.
+        # La plage reste de 0 à 100 % et la préférence SQLite ne change pas.
+        volume_line = make_box(False, 20, css='setting-line')
+        panel.append(volume_line)
+        volume_details = make_box(True, 5)
+        volume_details.set_hexpand(True)
+        volume_details.set_valign(Gtk.Align.CENTER)
+        volume_details.append(widget_label('Volume général', 'body-text'))
+        volume_details.append(widget_label('Glisse vers le haut pour augmenter le son.', 'subtitle', True))
+        volume_line.append(volume_details)
+
+        volume_control = make_box(True, 7, css='volume-control')
+        volume_control.set_halign(Gtk.Align.CENTER)
+        volume_line.append(volume_control)
+        scale = Gtk.Scale.new_with_range(Gtk.Orientation.VERTICAL, 0, 100, 1)
+        scale.add_css_class('clavia-volume-slider')
+        scale.set_size_request(42, 132)
+        scale.set_inverted(False)  # 100 % en haut, 0 % en bas
+        scale.set_digits(0)
+        scale.set_draw_value(False)
+        scale.set_value(self.audio.volume)
+        scale.set_tooltip_text('Volume sonore, de 0 à 100 %')
+        volume_control.append(scale)
+        icon = Gtk.Image.new_from_icon_name('audio-volume-high-symbolic')
+        icon.add_css_class('volume-icon')
+        volume_control.append(icon)
+        number = widget_label(f'{self.audio.volume} %', 'volume-percentage')
+        volume_control.append(number)
+        scale.connect('value-changed', self.change_volume)
+        scale.connect('value-changed', lambda widget: number.set_text(f'{round(widget.get_value())} %'))
         if not self.dyslexic_available:
             panel.append(widget_label('Pour utiliser OpenDyslexic, installe la police sur ton système puis relance Clavia.', 'notice', True))
         panel.append(widget_label('La progression est sauvegardée dans '
                                   '~/.local/share/jeu-clavier/progress.db', 'subtitle', True))
         add_button(self.page, 'Retour au parcours', self.home, 'primary')
 
+    def change_volume(self, scale):
+        value = round(scale.get_value())
+        self.audio.volume = value
+        self.db.set_preference('sound_volume', str(value))
+
     def change_setting(self, switch, _pspec, prop):
         val = switch.get_active()
-        setattr(self, {'keyboard': 'show_keys'}.get(prop, prop), val)
+        if prop in ('sounds', 'keyboard_sounds', 'reward_sounds'):
+            setattr(self.audio, {'sounds': 'enabled', 'keyboard_sounds': 'keyboard',
+                                 'reward_sounds': 'rewards'}[prop], val)
+        else:
+            setattr(self, {'keyboard': 'show_keys'}.get(prop, prop), val)
         self.db.set_preference(prop, '1' if val else '0')
         if prop in ('large', 'dyslexic'):
             self.apply_theme()
 
     def do_shutdown(self):
         self.stop_timers()
+        self.audio.close()
         self.db.close()
         Gtk.Application.do_shutdown(self)
 
