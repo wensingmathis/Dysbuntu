@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Vocalis
+Comment=Synthèse vocale locale et accessible
+Exec=vocalis
+Icon=/usr/lib/vocalis/Vocalis.jpeg
+Terminal=false
+Categories=Education;Utility;Accessibility;
