@@ -1,6 +1,7 @@
 """CSS partagé par toute l'application : police OpenDyslexic + thème."""
 
 from gi.repository import Gtk, Gdk
+import logging
 
 CSS = """
 window {
@@ -130,8 +131,13 @@ list row {
 def apply():
     provider = Gtk.CssProvider()
     provider.load_from_data(CSS.encode("utf-8"))
+    screen = Gdk.Screen.get_default()
+    if screen is None:
+        logging.error("Aucun serveur graphique GTK disponible")
+        return False
     Gtk.StyleContext.add_provider_for_screen(
-        Gdk.Screen.get_default(),
+        screen,
         provider,
         Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
     )
+    return True

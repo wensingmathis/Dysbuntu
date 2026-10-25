@@ -1,174 +1,199 @@
-"""
-Évaluateur d'expressions mathématiques sécurisé.
+"""Moteur mathématique NumDys, sans eval/exec et avec budget d'exécution.
 
-On n'utilise JAMAIS eval()/exec() sur une saisie utilisateur. On parse
-l'expression en arbre syntaxique (module ast) et on interprète nous-mêmes
-uniquement les nœuds explicitement autorisés (nombres, opérateurs
-arithmétiques, variables connues, appels aux fonctions mathématiques
-listées ci-dessous). Tout le reste lève une ExpressionError.
+Les expressions sont compilées une fois, puis évaluées pour plusieurs points.
+Les seules données utilisateur évaluées sont des scalaires numériques finis.
 """
-
 from __future__ import annotations
 
 import ast
+from dataclasses import dataclass
 import math
-import operator as op
+import operator
+from collections.abc import Mapping
+from typing import Callable
 
-BIN_OPS = {
-    ast.Add: op.add,
-    ast.Sub: op.sub,
-    ast.Mult: op.mul,
-    ast.Div: op.truediv,
-    ast.FloorDiv: op.floordiv,
-    ast.Mod: op.mod,
-    ast.Pow: op.pow,
+MAX_EXPRESSION_LENGTH = 256
+MAX_AST_NODES = 128
+MAX_AST_DEPTH = 24
+MAX_ABS_VALUE = 1e100
+MAX_EXPONENT = 100.0
+
+_BINARY: dict[type[ast.operator], Callable[[float, float], float]] = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
 }
-
-UNARY_OPS = {
-    ast.UAdd: op.pos,
-    ast.USub: op.neg,
+_UNARY: dict[type[ast.unaryop], Callable[[float], float]] = {
+    ast.UAdd: operator.pos,
+    ast.USub: operator.neg,
 }
-
-CONSTANTS = {"pi": math.pi, "e": math.e}
-
-
-class ExpressionError(Exception):
-    """Erreur levée pour toute expression invalide ou non autorisée."""
+_CONSTANTS = {"pi": math.pi, "e": math.e}
+_FUNCTIONS = frozenset({"sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "ln", "log", "exp", "abs"})
 
 
-def _functions(degree_mode: bool):
-    """Renvoie le dictionnaire des fonctions autorisées, en tenant compte
-    du mode degrés/radians pour les fonctions trigonométriques."""
+class ExpressionError(ValueError):
+    """Une saisie mathématique est interdite, invalide ou trop coûteuse."""
 
-    if degree_mode:
-        return {
-            "sin": lambda x: math.sin(math.radians(x)),
-            "cos": lambda x: math.cos(math.radians(x)),
-            "tan": lambda x: math.tan(math.radians(x)),
-            "asin": lambda x: math.degrees(math.asin(x)),
-            "acos": lambda x: math.degrees(math.acos(x)),
-            "atan": lambda x: math.degrees(math.atan(x)),
-            "sqrt": math.sqrt,
-            "ln": math.log,
-            "log": math.log10,
-            "exp": math.exp,
-            "abs": abs,
-        }
-    return {
-        "sin": math.sin,
-        "cos": math.cos,
-        "tan": math.tan,
-        "asin": math.asin,
-        "acos": math.acos,
-        "atan": math.atan,
-        "sqrt": math.sqrt,
-        "ln": math.log,
-        "log": math.log10,
-        "exp": math.exp,
-        "abs": abs,
-    }
+
+def checked_number(value: object, name: str = "Nombre") -> float:
+    """Refuse les booléens, entiers géants, NaN et infinis dès l'entrée."""
+    if type(value) not in (int, float):
+        raise ExpressionError(f"{name} : nombre invalide")
+    try:
+        number = float(value)
+    except (ValueError, OverflowError) as exc:
+        raise ExpressionError(f"{name} : nombre trop grand") from exc
+    if not math.isfinite(number) or abs(number) > MAX_ABS_VALUE:
+        raise ExpressionError(f"{name} : valeur hors limites")
+    return number
+
+
+def parse_number(text: str, name: str = "Nombre") -> float:
+    """Lit un coefficient décimal en notation française, sans expression."""
+    if len(text) > 64:
+        raise ExpressionError(f"{name} : saisie trop longue")
+    try:
+        return checked_number(float(text.strip().replace(",", ".")), name)
+    except ValueError as exc:
+        if isinstance(exc, ExpressionError):
+            raise
+        raise ExpressionError(f"{name} : nombre invalide") from exc
 
 
 def _normalize(expression: str) -> str:
-    text = expression.strip()
-    text = text.replace("×", "*").replace("÷", "/")
-    text = text.replace(",", ".")
-    text = text.replace("^", "**")
-    text = text.replace("√", "sqrt")
-    return text
+    return (expression.strip().replace("×", "*").replace("÷", "/")
+            .replace(",", ".").replace("^", "**")
+            .replace("π", "pi").replace("√", "sqrt"))
 
 
-def evaluate(expression: str, variables: dict | None = None, degree_mode: bool = False):
-    """Évalue une expression mathématique et renvoie un nombre (int/float).
-
-    variables : dictionnaire de variables autorisées dans l'expression
-                (par exemple {"x": 2.5} pour les graphiques, ou
-                {"n": 3, "u": 1.0} pour les suites).
-    degree_mode : si True, les fonctions trigonométriques travaillent en
-                  degrés plutôt qu'en radians.
-    """
-    variables = variables or {}
-    funcs = _functions(degree_mode)
-    text = _normalize(expression)
-
-    if not text:
-        raise ExpressionError("Expression vide")
-
-    try:
-        tree = ast.parse(text, mode="eval")
-    except (SyntaxError, ValueError):
-        raise ExpressionError("Syntaxe invalide")
-
-    def _eval(node):
-        if isinstance(node, ast.Expression):
-            return _eval(node.body)
-
-        if isinstance(node, ast.Constant):
-            if isinstance(node.value, (int, float)):
-                return node.value
-            raise ExpressionError("Valeur invalide")
-
-        if isinstance(node, ast.BinOp):
-            op_type = type(node.op)
-            if op_type not in BIN_OPS:
-                raise ExpressionError("Opérateur non supporté")
-            left = _eval(node.left)
-            right = _eval(node.right)
-            try:
-                return BIN_OPS[op_type](left, right)
-            except ZeroDivisionError:
-                raise ExpressionError("Division par zéro")
-
-        if isinstance(node, ast.UnaryOp):
-            op_type = type(node.op)
-            if op_type not in UNARY_OPS:
-                raise ExpressionError("Opérateur non supporté")
-            return UNARY_OPS[op_type](_eval(node.operand))
-
-        if isinstance(node, ast.Name):
-            if node.id in variables:
-                return variables[node.id]
-            if node.id in CONSTANTS:
-                return CONSTANTS[node.id]
+def _validate_node(node: ast.AST, allowed: frozenset[str], depth: int = 0) -> None:
+    if depth > MAX_AST_DEPTH:
+        raise ExpressionError("Expression trop imbriquée")
+    if isinstance(node, ast.Expression):
+        _validate_node(node.body, allowed, depth + 1)
+    elif isinstance(node, ast.Constant):
+        checked_number(node.value)
+    elif isinstance(node, ast.Name):
+        if node.id not in allowed and node.id not in _CONSTANTS:
             raise ExpressionError(f"Variable inconnue : {node.id}")
+    elif isinstance(node, ast.BinOp) and type(node.op) in _BINARY:
+        _validate_node(node.left, allowed, depth + 1)
+        _validate_node(node.right, allowed, depth + 1)
+    elif isinstance(node, ast.UnaryOp) and type(node.op) in _UNARY:
+        _validate_node(node.operand, allowed, depth + 1)
+    elif isinstance(node, ast.Call):
+        if not isinstance(node.func, ast.Name) or node.func.id not in _FUNCTIONS:
+            raise ExpressionError("Fonction non autorisée")
+        if len(node.args) != 1 or node.keywords:
+            raise ExpressionError("Cette fonction attend exactement un argument")
+        _validate_node(node.args[0], allowed, depth + 1)
+    else:
+        raise ExpressionError("Expression non autorisée")
 
-        if isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name):
-                raise ExpressionError("Appel de fonction invalide")
-            name = node.func.id
-            if name not in funcs:
-                raise ExpressionError(f"Fonction inconnue : {name}")
-            if node.keywords:
-                raise ExpressionError("Arguments nommés non supportés")
-            args = [_eval(a) for a in node.args]
-            try:
-                return funcs[name](*args)
-            except ValueError:
-                raise ExpressionError("Domaine invalide pour cette fonction")
 
-        raise ExpressionError("Expression non supportée")
+def _apply_function(name: str, x: float, degree_mode: bool) -> float:
+    # Conversion des angles seulement pour la trigonométrie directe/inverse.
+    if name in {"sin", "cos", "tan"}:
+        return getattr(math, name)(math.radians(x) if degree_mode else x)
+    if name in {"asin", "acos", "atan"}:
+        result = getattr(math, name)(x)
+        return math.degrees(result) if degree_mode else result
+    if name == "ln":
+        return math.log(x)
+    if name == "log":
+        return math.log10(x)
+    if name == "sqrt":
+        return math.sqrt(x)
+    if name == "exp":
+        return math.exp(x)
+    if name == "abs":
+        return abs(x)
+    raise ExpressionError("Fonction non autorisée")
 
-    try:
-        result = _eval(tree)
-    except ZeroDivisionError:
-        raise ExpressionError("Division par zéro")
-    except (TypeError, ValueError):
+
+@dataclass(frozen=True, slots=True)
+class CompiledExpression:
+    """AST validé et réutilisable ; aucun code Python externe n'est exécuté."""
+
+    body: ast.expr
+    variables: frozenset[str]
+
+    def evaluate(self, variables: Mapping[str, float] | None = None, degree_mode: bool = False) -> float:
+        values = variables if variables is not None else {}
+        numbers = {key: checked_number(values[key], key) for key in self.variables if key in values}
+        if len(numbers) != len(self.variables):
+            missing = self.variables - numbers.keys()
+            raise ExpressionError(f"Variable manquante : {', '.join(sorted(missing))}")
+
+        def run(node: ast.AST) -> float:
+            if isinstance(node, ast.Constant):
+                return checked_number(node.value)
+            if isinstance(node, ast.Name):
+                return numbers[node.id] if node.id in numbers else _CONSTANTS[node.id]
+            if isinstance(node, ast.UnaryOp):
+                result = _UNARY[type(node.op)](run(node.operand))
+                return checked_number(result, "Résultat")
+            if isinstance(node, ast.BinOp):
+                left, right = run(node.left), run(node.right)
+                if isinstance(node.op, ast.Pow) and abs(right) > MAX_EXPONENT:
+                    raise ExpressionError("Exposant trop grand (limite : 100)")
+                result = _BINARY[type(node.op)](left, right)
+                return checked_number(result, "Résultat")
+            if isinstance(node, ast.Call):
+                result = _apply_function(node.func.id, run(node.args[0]), degree_mode)
+                return checked_number(result, "Résultat")
+            raise ExpressionError("Expression non autorisée")
+
+        try:
+            return run(self.body)
+        except ZeroDivisionError as exc:
+            raise ExpressionError("Division par zéro") from exc
+        except OverflowError as exc:
+            raise ExpressionError("Dépassement de capacité numérique") from exc
+        except ValueError as exc:
+            if isinstance(exc, ExpressionError):
+                raise
+            raise ExpressionError("Valeur hors domaine mathématique") from exc
+        except TypeError as exc:
+            raise ExpressionError("Arguments mathématiques invalides") from exc
+
+
+def compile_expression(expression: str, allowed_variables: tuple[str, ...] = ()) -> CompiledExpression:
+    """Contrôle une seule fois la longueur, les noms, l'AST et sa profondeur."""
+    if not isinstance(expression, str):
         raise ExpressionError("Expression invalide")
+    if len(expression) > MAX_EXPRESSION_LENGTH:
+        raise ExpressionError("Expression trop longue (256 caractères maximum)")
+    normalized = _normalize(expression)
+    if not normalized:
+        raise ExpressionError("Expression vide")
+    allowed = frozenset(allowed_variables)
+    if not allowed.issubset({"x", "n", "u"}):
+        raise ExpressionError("Nom de variable non autorisé")
+    try:
+        tree = ast.parse(normalized, mode="eval")
+    except (SyntaxError, ValueError, RecursionError, MemoryError) as exc:
+        raise ExpressionError("Syntaxe invalide") from exc
+    if sum(1 for _ in ast.walk(tree)) > MAX_AST_NODES:
+        raise ExpressionError("Expression trop complexe")
+    _validate_node(tree, allowed)
+    used = frozenset(node.id for node in ast.walk(tree) if isinstance(node, ast.Name) and node.id in allowed)
+    return CompiledExpression(tree.body, used)
 
-    if isinstance(result, complex):
-        raise ExpressionError("Résultat complexe non supporté")
 
-    return result
+def evaluate(expression: str, variables: Mapping[str, float] | None = None, degree_mode: bool = False) -> float:
+    """Interface simple de compatibilité pour les calculs ponctuels."""
+    values = variables if variables is not None else {}
+    return compile_expression(expression, tuple(values)).evaluate(values, degree_mode)
 
 
-def format_result(value) -> str:
-    """Formate un nombre pour l'affichage (entiers sans décimales)."""
-    if isinstance(value, float):
-        if math.isnan(value):
-            return "Erreur"
-        if math.isinf(value):
-            return "∞" if value > 0 else "-∞"
-        if value.is_integer():
-            return str(int(value))
-        return f"{round(value, 10):g}"
-    return str(value)
+def format_result(value: int | float) -> str:
+    """Notation lisible, bornée et compatible avec un nouveau calcul."""
+    number = checked_number(value, "Résultat")
+    if abs(number) < 1e12 and number.is_integer():
+        return str(int(number))
+    return f"{number:.12g}"
