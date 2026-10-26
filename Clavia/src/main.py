@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Clavia : jeu de frappe AZERTY natif pour Linux (GTK 4)."""
+import logging
+from functools import wraps
 import math
 import random
 import shutil
@@ -14,10 +16,12 @@ gi.require_version('Gdk', '4.0')
 from gi.repository import Gdk, GLib, Gtk, Pango
 
 from content import LESSONS, SPRINT_WORDS
-from engine import compute_metrics, consecutive_days, level_from_xp, next_expected, rich_target, same_character, matches_target
-from storage import Storage
+from engine import (compute_metrics, consecutive_days, level_from_xp, matches_target,
+                    next_expected, rich_target, safe_volume, same_character)
+from storage import Storage, StorageError
 from audio import SoundManager
 
+LOGGER = logging.getLogger(__name__)
 BASE = Path(__file__).resolve().parent.parent
 CSS_FILE = BASE / 'assets' / 'style.css'
 LIGHT_CSS_FILE = BASE / 'assets' / 'style-light.css'
@@ -141,6 +145,95 @@ def add_continue_button(parent, label, callback):
     return button
 
 
+def add_exit_button(parent, callback):
+    """Bouton retour AKAspidey01 : le fond ambre s'étend au survol.
+
+    Animation bornée à 250 ms, déclenchée seulement à l'entrée/sortie,
+    sans changement de page, données ou styles des autres composants.
+    """
+    button = Gtk.Button()
+    button.add_css_class('exit-motion')
+    button.set_tooltip_text('Quitter le niveau et revenir au parcours')
+    button.set_size_request(188, 54)
+
+    # La couche inférieure se déploie ; le texte reste au premier plan.
+    overlay = Gtk.Overlay()
+    background = make_box(False, 0, 'exit-background')
+    background.set_size_request(180, 46)
+    fill = Gtk.Box()
+    fill.add_css_class('exit-fill')
+    fill.set_size_request(45, 46)
+    background.append(fill)
+    overlay.set_child(background)
+
+    foreground = make_box(False, 0, 'exit-foreground')
+    foreground.set_halign(Gtk.Align.FILL)
+    foreground.set_valign(Gtk.Align.FILL)
+    arrow_cell = make_box(False, 0, 'exit-arrow-cell')
+    arrow_cell.set_size_request(45, 46)
+    arrow_cell.append(widget_label('←', 'exit-arrow'))
+    foreground.append(arrow_cell)
+    label = widget_label('Quitter', 'exit-text')
+    label.set_hexpand(True)
+    label.set_halign(Gtk.Align.CENTER)
+    label.set_valign(Gtk.Align.CENTER)
+    foreground.append(label)
+    overlay.add_overlay(foreground)
+    button.set_child(overlay)
+
+    # GTK4 n'anime pas les dimensions automatiquement avec une transition CSS.
+    # On interpole uniquement la largeur du fond, ~16 frames pendant 250 ms.
+    start_width = 45
+    full_width = 180
+    animation = {'source': None, 'from': start_width, 'to': start_width,
+                 'started': 0.0, 'width': start_width}
+
+    def advance():
+        elapsed = (time.monotonic() - animation['started']) / 0.25
+        fraction = min(1.0, max(0.0, elapsed))
+        eased = 1.0 - (1.0 - fraction) ** 3
+        width = round(animation['from'] + (animation['to'] - animation['from']) * eased)
+        animation['width'] = width
+        fill.set_size_request(width, 46)
+        if fraction >= 1.0 or button.get_parent() is None:
+            animation['source'] = None
+            return False
+        return True
+
+    def animate(target):
+        if animation['source'] is not None:
+            GLib.source_remove(animation['source'])
+            animation['source'] = None
+        animation['from'] = animation['width']
+        animation['to'] = target
+        animation['started'] = time.monotonic()
+        if animation['from'] != target:
+            animation['source'] = GLib.timeout_add(16, advance)
+        if target == full_width:
+            button.add_css_class('exit-hovered')
+        else:
+            button.remove_css_class('exit-hovered')
+
+    motion = Gtk.EventControllerMotion()
+    motion.connect('enter', lambda *_: animate(full_width))
+    motion.connect('leave', lambda *_: animate(start_width))
+    button.add_controller(motion)
+
+    def clicked(*_):
+        if animation['source'] is not None:
+            GLib.source_remove(animation['source'])
+            animation['source'] = None
+        root = button.get_root()
+        app = root.get_application() if root and hasattr(root, 'get_application') else None
+        if app is not None and hasattr(app, 'audio'):
+            app.audio.play('button_click')
+        callback()
+
+    button.connect('clicked', clicked)
+    parent.append(button)
+    return button
+
+
 def add_sprint_button(parent, callback):
     """Bouton Sprint façon Uiverse / Voxybuns, GTK4 natif.
 
@@ -174,6 +267,20 @@ def add_sprint_button(parent, callback):
 def clear(box):
     while box.get_first_child() is not None:
         box.remove(box.get_first_child())
+
+
+def storage_guard(callback):
+    """Report recoverable SQLite read failures instead of breaking GTK callbacks."""
+    @wraps(callback)
+    def guarded(self, *args, **kwargs):
+        try:
+            return callback(self, *args, **kwargs)
+        except StorageError as exc:
+            if callback.__name__ == 'finish':
+                self.new_page()
+            self.show_storage_error(callback.__name__, exc)
+            return False
+    return guarded
 
 
 class Flame(Gtk.Picture):
@@ -307,7 +414,7 @@ class Clavia(Gtk.Application):
                                   enabled=self.db.preference('sounds', '1') == '1',
                                   keyboard=self.db.preference('keyboard_sounds', '0') == '1',
                                   rewards=self.db.preference('reward_sounds', '1') == '1',
-                                  volume=int(self.db.preference('sound_volume', '55')))
+                                  volume=safe_volume(self.db.preference('sound_volume', '55')))
         self.timer_id = None
         self.flame_id = None
         self.key_pressed_timeout = None
@@ -322,6 +429,17 @@ class Clavia(Gtk.Application):
         self.completed_chars = 0
         self.completed_words = 0
         self.key_labels = []
+        self.last_pressed_key = None
+        self.exercise_token = 0
+        self.pending_transition = False
+
+    def show_storage_error(self, operation, exc):
+        """Keep the window usable and never pretend a failed write succeeded."""
+        LOGGER.error('Erreur de sauvegarde (%s): %s', operation, exc)
+        if hasattr(self, 'page'):
+            warning = widget_label(f'Sauvegarde impossible ({operation}). Vérifie les droits et l’espace disque.',
+                                   'notice', True)
+            self.page.prepend(warning)
 
     def check_font(self):
         try:
@@ -386,7 +504,14 @@ class Clavia(Gtk.Application):
         """Palettes Slate sombre / claire, sans toucher aux préférences de lecture."""
         if hasattr(self, 'provider'):
             Gtk.StyleContext.remove_provider_for_display(Gdk.Display.get_default(), self.provider)
-        raw = (CSS_FILE if self.dark else LIGHT_CSS_FILE).read_text(encoding='utf-8')
+        try:
+            raw = (CSS_FILE if self.dark else LIGHT_CSS_FILE).read_text(encoding='utf-8')
+        except (OSError, UnicodeError) as exc:
+            LOGGER.error('Feuille CSS inaccessible : %s', exc)
+            raw = '.page { padding: 12px; } .prompt { font-size: 18px; }'
+        for pattern in ('geo', 'paper', 'grid'):
+            tile = BASE / 'assets' / 'backgrounds' / f'{pattern}-{"dark" if self.dark else "light"}.png'
+            raw = raw.replace(f'__CLAVIA_BG_{pattern.upper()}__', tile.as_uri())
         self.provider = Gtk.CssProvider()
         self.provider.load_from_string(raw)
         Gtk.StyleContext.add_provider_for_display(
@@ -406,7 +531,10 @@ class Clavia(Gtk.Application):
 
     def change_theme(self, dark):
         self.dark = dark
-        self.db.set_preference('dark', '1' if dark else '0')
+        try:
+            self.db.set_preference('dark', '1' if dark else '0')
+        except StorageError as exc:
+            self.show_storage_error('thème', exc)
         settings = Gtk.Settings.get_default()
         if settings is not None:
             settings.set_property('gtk-application-prefer-dark-theme', dark)
@@ -424,25 +552,24 @@ class Clavia(Gtk.Application):
 
     def clear_level_background(self):
         for css in ('level-bg-geo', 'level-bg-paper', 'level-bg-grid'):
-            self.page.remove_css_class(css)
+            self.scroller.remove_css_class(css)
 
     def apply_level_background(self, lesson=None, sprint=False):
+        """Un motif sur le viewport entier, alterné entre les leçons."""
         self.clear_level_background()
         if sprint:
-            self.page.add_css_class('level-bg-grid')
-            return
-        if lesson is None:
-            return
-        if lesson.id <= 12:
-            self.page.add_css_class('level-bg-geo')
-        elif lesson.id <= 24:
-            self.page.add_css_class('level-bg-paper')
+            pattern = 'grid'
+        elif lesson is not None:
+            pattern = ('geo', 'paper', 'grid')[(lesson.id - 1) % 3]
         else:
-            self.page.add_css_class('level-bg-grid')
+            return
+        self.scroller.add_css_class('level-bg-' + pattern)
 
     def new_page(self):
         self.stop_timers()
         self.finished = True
+        self.exercise_token += 1  # Invalidates pending idle callbacks from the previous page.
+        self.pending_transition = False
         clear(self.page)
         self.clear_level_background()
         self.header.set_visible(True)
@@ -459,6 +586,7 @@ class Clavia(Gtk.Application):
             self.page.append(widget_label(description, 'subtitle', True))
 
 
+    @storage_guard
     def home(self):
         self.new_page()
         summ = self.db.summary()
@@ -502,6 +630,7 @@ class Clavia(Gtk.Application):
         self.page.append(widget_label('Termine une leçon pour débloquer la suivante. '
                                       'Tu peux refaire tes leçons pour améliorer ton record.', 'subtitle', True))
         completed = self.db.completed_ids()
+        bests = self.db.best_by_lesson()
         for kind in ('Mots', 'Phrases', 'Textes', 'Situations', 'Précision', 'Maîtrise'):
             section = self.panel(gap=13)
             heading = make_box(False, 10)
@@ -512,7 +641,7 @@ class Clavia(Gtk.Application):
                 if lesson.kind != kind:
                     continue
                 available = lesson.id <= unlocked
-                best = self.db.best(lesson.id)
+                best = bests.get(lesson.id, {'best_score': None, 'stars': None, 'best_cpm': None})
                 card = make_box(False, 12, css='lesson-card')
                 if not available:
                     card.add_css_class('locked')
@@ -554,6 +683,7 @@ class Clavia(Gtk.Application):
         item.append(widget_label(foot, 'muted', True))
         return item
 
+    @storage_guard
     def start_lesson(self, lesson):
         if lesson.id > self.db.unlocked_id():
             self.home()
@@ -583,6 +713,7 @@ class Clavia(Gtk.Application):
         self.last_elapsed = 0.0
         self.current_length = 0
         self.key_labels = []
+        self.last_pressed_key = None
 
         # En mode frappe : texte et métriques uniquement, sans navigation latérale.
         top = make_box(False, gap=12)
@@ -594,7 +725,7 @@ class Clavia(Gtk.Application):
                                     f'PARCOURS / {self.lesson.kind.upper()} / {self.lesson.id:02d}', 'eyebrow'))
         heading.append(widget_label('Sprint' if self.sprint else self.lesson.title,
                                     'page-title', True))
-        add_button(top, 'Quitter', self.home, 'nav')
+        add_exit_button(top, self.home)
 
         # Barre légère avec temps, vitesse, précision et points.
         status = make_box(False, gap=12, css='exercise-status')
@@ -705,42 +836,56 @@ class Clavia(Gtk.Application):
             return True
         if self.show_keys and self.motion:
             codepoint = Gdk.keyval_to_unicode(keyval)
-            if codepoint and codepoint >= 32:
-                pressed = chr(codepoint).lower()
-                pressed = 'ESPACE' if pressed == ' ' else pressed
-                if keyval == Gdk.KEY_BackSpace:
-                    pressed = 'RETOUR'
-                for char, key in self.key_labels:
-                    key.remove_css_class('key-pressed')
-                    if char == pressed:
-                        key.add_css_class('key-pressed')
-                        if self.key_pressed_timeout:
-                            GLib.source_remove(self.key_pressed_timeout)
-                        self.key_pressed_timeout = GLib.timeout_add(120, self.clear_key_flash, key)
-                        break
+            pressed = ('RETOUR' if keyval == Gdk.KEY_BackSpace else
+                       chr(codepoint).lower() if codepoint and codepoint >= 32 else '')
+            if pressed == ' ':
+                pressed = 'ESPACE'
+            if self.key_pressed_timeout is not None:
+                GLib.source_remove(self.key_pressed_timeout)
+                self.key_pressed_timeout = None
+            if self.last_pressed_key is not None:
+                self.last_pressed_key.remove_css_class('key-pressed')
+                self.last_pressed_key = None
+            for char, key in self.key_labels:
+                if char == pressed:
+                    key.add_css_class('key-pressed')
+                    self.last_pressed_key = key
+                    self.key_pressed_timeout = GLib.timeout_add(120, self.clear_key_flash, key)
+                    break
         return False
 
     def clear_key_flash(self, key):
         key.remove_css_class('key-pressed')
+        if self.last_pressed_key is key:
+            self.last_pressed_key = None
         self.key_pressed_timeout = None
         return False
 
-    def on_insert(self, _buffer, position, text, _byte_len):
+    def on_insert(self, buffer, position, text, _byte_len):
+        # GTK's insert-text handler runs before the default buffer insertion.
+        # Blocking here also catches Shift+Insert, context-menu paste and DnD.
         if self.finished:
+            buffer.stop_emission_by_name('insert-text')
             return
-        if not self.started:
-            self.started = time.monotonic()
+        if self.sprint and self.started is not None and self.elapsed() >= 60:
+            buffer.stop_emission_by_name('insert-text')
+            GLib.idle_add(self.finish)
+            return
         expected = self.prompts[self.stage]
+        if (len(text) != 1 or text in ('\n', '\r') or
+                len(self.current_input()) >= len(expected)):
+            buffer.stop_emission_by_name('insert-text')
+            self.feedback.set_text('Collage désactivé. Saisis un caractère à la fois.')
+            return
+        if self.started is None:
+            self.started = time.monotonic()
         offset = position.get_offset()
-        for index, char in enumerate(text):
-            if char in ('\n', '\r'):
-                continue
-            self.attempts += 1
-            if offset + index >= len(expected) or not same_character(char, expected[offset + index]):
-                self.errors += 1
-                self.audio.play('key_error')
-            else:
-                self.audio.play('key_press')
+        self.attempts += 1
+        if offset >= len(expected) or not same_character(text, expected[offset]):
+            self.errors += 1
+            self.audio.play('key_error')
+        else:
+            self.audio.play('key_press')
 
     def current_input(self):
         return self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), False)
@@ -757,8 +902,10 @@ class Clavia(Gtk.Application):
         matches = sum(1 for a, b in zip(entered, target) if same_character(a, b))
         self.current_length = matches
         if matches_target(target, entered):
-            # GTK ne doit pas vider le TextBuffer depuis le signal « changed ».
-            GLib.idle_add(self.next_step, self.stage)
+            # Queue at most one transition, tied to the active exercise token.
+            if not self.pending_transition:
+                self.pending_transition = True
+                GLib.idle_add(self.next_step, self.stage, self.exercise_token)
         elif len(entered) > len(target) or any(not same_character(a, b) for a, b in zip(entered, target)):
             self.feedback.set_text('Une erreur ? Corrige les caractères rouges avec Retour arrière.')
         elif entered:
@@ -833,8 +980,12 @@ class Clavia(Gtk.Application):
         self.update_live()
         return True
 
-    def next_step(self, expected_stage):
-        if self.finished or self.stage != expected_stage or not matches_target(self.prompts[self.stage], self.current_input()):
+    def next_step(self, expected_stage, expected_token):
+        if expected_token != self.exercise_token or self.finished:
+            return False
+        self.pending_transition = False
+        if (self.stage != expected_stage or
+                not matches_target(self.prompts[self.stage], self.current_input())):
             return False
         self.audio.play('word_complete')
         self.completed_chars += len(self.prompts[self.stage])
@@ -851,6 +1002,7 @@ class Clavia(Gtk.Application):
             self.text_view.grab_focus()
         return False
 
+    @storage_guard
     def finish(self):
         if self.finished:
             return
@@ -869,10 +1021,15 @@ class Clavia(Gtk.Application):
         old_best = self.db.best(lesson.id)['best_score'] if not sprint else max(
             [r['best_score'] for r in self.db.records() if r['mode'] == 'Sprint'] or [0])
         previous_completed = len(self.db.completed_ids())
+        saved = False
         if typed:
-            self.db.save(None if sprint else lesson.id, 'Sprint' if sprint else lesson.kind,
-                         typed, self.attempts, self.errors, duration, metrics)
-        if typed:
+            try:
+                self.db.save(None if sprint else lesson.id, 'Sprint' if sprint else lesson.kind,
+                             typed, self.attempts, self.errors, duration, metrics)
+                saved = True
+            except (StorageError, ValueError) as exc:
+                LOGGER.error('Progression non enregistrée : %s', exc)
+        if saved:
             self.audio.play('timer_end' if sprint else 'lesson_complete')
             if metrics['score'] > (old_best or 0) and old_best:
                 self.audio.play('new_record')
@@ -886,6 +1043,10 @@ class Clavia(Gtk.Application):
                     and len(self.db.completed_ids()) in (1, 13, 18, 36)):
                 self.audio.play('badge_unlock')
         self.new_page()
+        if typed and not saved:
+            self.page.append(widget_label('Attention : cette session n’a PAS été enregistrée. '
+                                          'Vérifie les droits d’accès et l’espace disque.',
+                                          'notice', True))
         banner = self.panel(css='result-card', gap=12)
         banner.append(widget_label('TEMPS ÉCOULÉ' if sprint else 'LEÇON TERMINÉE', 'eyebrow'))
         banner.append(widget_label('Bien joué !', 'hero-title'))
@@ -948,6 +1109,7 @@ class Clavia(Gtk.Application):
         block.append(widget_label(str(value), 'terminal-metric-value-accent' if accent else 'terminal-metric-value'))
         return block
 
+    @storage_guard
     def stats(self):
         self.new_page()
         self.page_title('Mes statistiques', 'Une vue claire de ta progression, stockée uniquement sur cet ordinateur.')
@@ -1096,7 +1258,10 @@ class Clavia(Gtk.Application):
     def change_volume(self, scale):
         value = round(scale.get_value())
         self.audio.volume = value
-        self.db.set_preference('sound_volume', str(value))
+        try:
+            self.db.set_preference('sound_volume', str(value))
+        except StorageError as exc:
+            self.show_storage_error('volume', exc)
 
     def change_setting(self, switch, _pspec, prop):
         val = switch.get_active()
@@ -1105,19 +1270,34 @@ class Clavia(Gtk.Application):
                                  'reward_sounds': 'rewards'}[prop], val)
         else:
             setattr(self, {'keyboard': 'show_keys'}.get(prop, prop), val)
-        self.db.set_preference(prop, '1' if val else '0')
+        try:
+            self.db.set_preference(prop, '1' if val else '0')
+        except StorageError as exc:
+            self.show_storage_error('paramètre', exc)
         if prop in ('large', 'dyslexic'):
             self.apply_theme()
 
     def do_shutdown(self):
         self.stop_timers()
-        self.audio.close()
-        self.db.close()
-        Gtk.Application.do_shutdown(self)
+        try:
+            self.audio.close()
+        finally:
+            try:
+                self.db.close()
+            except StorageError as exc:
+                LOGGER.error('Fermeture SQLite : %s', exc)
+            Gtk.Application.do_shutdown(self)
 
 
 def main():
-    app = Clavia()
+    logging.basicConfig(level=logging.WARNING, format='%(levelname)s %(name)s: %(message)s')
+    try:
+        app = Clavia()
+    except StorageError as exc:
+        LOGGER.error('Démarrage de Clavia impossible : %s', exc)
+        print('Clavia : impossible d’ouvrir les sauvegardes. Vérifie les permissions et le disque.',
+              file=sys.stderr)
+        return 1
     return app.run(sys.argv)
 
 
