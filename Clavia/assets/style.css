@@ -301,38 +301,42 @@ button.continue-motion .continue-text { font-size: 15px; }
 button.continue-motion .continue-arrow { font-size: 19px; }
 button.continue-motion .continue-arrow-large { font-size: 23px; }
 
-/* Clavia 3.5.4 — fonds de niveaux, inspirés d'Uiverse mais adaptés au style Slate.
-   Motifs discrets pour ne pas gêner la lecture. */
-.page.level-bg-geo {
-  background-color: #1B1C22;
-  background-image:
-    linear-gradient(30deg, rgba(226,183,20,0.05) 12%, transparent 12.5%, transparent 87%, rgba(226,183,20,0.05) 87.5%, rgba(226,183,20,0.05)),
-    linear-gradient(150deg, rgba(255,255,255,0.025) 12%, transparent 12.5%, transparent 87%, rgba(255,255,255,0.025) 87.5%, rgba(255,255,255,0.025)),
-    linear-gradient(90deg, rgba(0,0,0,0.14) 2%, transparent 2.5%, transparent 97%, rgba(0,0,0,0.14) 97.5%, rgba(0,0,0,0.14));
-  background-size: 64px 56px, 64px 56px, 64px 56px;
-  background-position: 0 0, 32px 28px, 0 0;
+
+/* 3.5.5 — motifs visibles sur le viewport, carreaux PNG légers et stables GTK4. */
+scrolledwindow.level-bg-geo {
+  background-image: url("__CLAVIA_BG_GEO__");
+  background-repeat: repeat;
+  background-color: #1E1E24;
 }
-.page.level-bg-paper {
-  background-color: #202127;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
-  background-size: 54px 54px;
+scrolledwindow.level-bg-paper {
+  background-image: url("__CLAVIA_BG_PAPER__");
+  background-repeat: repeat;
+  background-color: #1E1E24;
 }
-.page.level-bg-grid {
+scrolledwindow.level-bg-grid {
+  background-image: url("__CLAVIA_BG_GRID__");
+  background-repeat: repeat;
   background-color: #191A1A;
-  background-image:
-    linear-gradient(rgba(114,114,114,0.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(114,114,114,0.18) 1px, transparent 1px);
-  background-size: 55px 55px;
 }
-.page.level-bg-geo .exercise-card,
-.page.level-bg-paper .exercise-card,
-.page.level-bg-grid .exercise-card {
-  background-color: rgba(37,37,43,0.94);
+
+/* Clavia 3.5.6 — AKAspidey01 : vraie expansion animée native GTK4.
+   La largeur de .exit-fill est interpolée dans Python uniquement au survol. */
+button.exit-motion {
+  background-color: #25252B;
+  background-image: none;
+  border: 1px solid #44444A;
+  border-radius: 14px;
+  padding: 3px;
+  box-shadow: none;
+  min-width: 188px;
+  min-height: 54px;
 }
-.page.level-bg-geo .keyboard-body,
-.page.level-bg-paper .keyboard-body,
-.page.level-bg-grid .keyboard-body {
-  background-color: rgba(52,52,59,0.94);
-}
+button.exit-motion:hover, button.exit-motion.exit-hovered { background-color: #25252B; }
+button.exit-motion .exit-background { border-radius: 11px; }
+button.exit-motion .exit-fill { background-color: #E2B714; border-radius: 10px; }
+button.exit-motion .exit-foreground { background: transparent; }
+button.exit-motion .exit-arrow-cell { background: transparent; }
+button.exit-motion .exit-arrow { color: #18181C; font-weight: 800; font-size: 24px; }
+button.exit-motion .exit-text { color: #D1D0C5; font-size: 15px; font-weight: 700; }
+button.exit-motion.exit-hovered .exit-text { color: #18181C; }
+button.exit-motion:active .exit-fill { background-color: #CCA40D; }

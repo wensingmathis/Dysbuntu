@@ -87,10 +87,13 @@ Dysbuntu/
 ├── Clavia/
 │   ├── README.md
 │   ├── LICENSE
+│   ├── CHANGELOG.md
+│   ├── AUDIT.md
 │   ├── requirements.txt
 │   ├── install-local.sh
 │   ├── clavia_3.5.4_all.deb
 │   ├── assets/
+│   │   └── backgrounds/
 │   ├── packaging/
 │   ├── src/
 │   └── tests/
@@ -166,8 +169,9 @@ Jeu éducatif natif Linux pour apprendre la dactylographie en français, avec un
 - 12 sons facultatifs, boutons animés, flamme de série et fonds par niveau
 - Fonctionnement hors ligne, progression SQLite conservée lors des mises à jour
 - Interface adaptée à OpenDyslexic lorsqu'elle est installée
-- Version actuelle : 3.5.4
+- Version actuelle : 3.5.7
 - Sauvegardes conservées lors des mises à jour
+- Validation des entrées, transactions SQLite, gestion bornée des lecteurs audio et installation locale autonome
 
 Code source : dossier `Clavia/` dans ce dépôt. Clavia est distribué sous licence MIT (voir `Clavia/LICENSE`).
 
@@ -261,7 +265,7 @@ Le but est de créer un système adapté aux besoins des utilisateurs sans dépe
 
 ## Nouveautés récentes
 
-- Clavia est passé en version 3.5.4 : 36 niveaux, thèmes clair/sombre, clavier AZERTY amélioré, 12 sons facultatifs, statistiques, flamme, boutons animés et fonds par niveau. Les sauvegardes sont conservées.
+- Clavia est passé en version 3.5.7 : les 36 leçons et les fonctions existantes sont conservées, avec validation des entrées, écritures SQLite transactionnelles, gestion bornée des lecteurs audio et installation locale autonome. Voir [Clavia/CHANGELOG.md](Clavia/CHANGELOG.md) et [Clavia/README.md](Clavia/README.md).
 - Le dépôt est structuré autour de plusieurs modules distincts : Vocalis, Dysbuntu Correcteur, NumDys et Clavia.
 - Le projet s'appuie désormais sur une logique plus claire de modules indépendants, chacun avec son propre README, ses dépendances et ses outils.
 - Les outils sont pensés pour être utilisables hors ligne, sans compte, sans publicité, et avec un minimum de dépendances externes.
